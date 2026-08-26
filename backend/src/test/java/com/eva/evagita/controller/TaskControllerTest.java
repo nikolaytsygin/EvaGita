@@ -19,6 +19,8 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -119,9 +121,6 @@ class TaskControllerTest {
 
     @Test
     void shouldReturn400WhenTaskTitleIsEmpty() throws Exception {
-        when(taskService.createTask(any(Task.class)))
-            .thenThrow(new IllegalArgumentException("Task title must not be empty"));
-
         mockMvc.perform(post("/api/tasks")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -129,7 +128,7 @@ class TaskControllerTest {
                                   "title": "",
                                   "description": "Test description",
                                   "status": "TODO",
-                                 "priority": "MEDIUM"
+                                  "priority": "MEDIUM"
                                 }
                                 """))
                 .andExpect(status().isBadRequest())
@@ -137,6 +136,49 @@ class TaskControllerTest {
                 .andExpect(jsonPath("$.error").value("Bad Request"))
                 .andExpect(jsonPath("$.message").value("Task title must not be empty"))
                 .andExpect(jsonPath("$.timestamp").exists());
+
+        verify(taskService, never()).createTask(any(Task.class));
+    }
+
+    @Test
+    void shouldReturn400WhenTaskTitleContainsOnlyWhitespace() throws Exception {
+        mockMvc.perform(post("/api/tasks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "   ",
+                                  "description": "Test description",
+                                  "status": "TODO",
+                                  "priority": "MEDIUM"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.message").value("Task title must not be empty"))
+                .andExpect(jsonPath("$.timestamp").exists());
+
+        verify(taskService, never()).createTask(any(Task.class));
+    }
+
+    @Test
+    void shouldReturn400WhenTaskTitleIsNull() throws Exception {
+        mockMvc.perform(post("/api/tasks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "description": "Test description",
+                                  "status": "TODO",
+                                  "priority": "MEDIUM"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.message").value("Task title must not be empty"))
+                .andExpect(jsonPath("$.timestamp").exists());
+
+        verify(taskService, never()).createTask(any(Task.class));
     }
 
     @Test
