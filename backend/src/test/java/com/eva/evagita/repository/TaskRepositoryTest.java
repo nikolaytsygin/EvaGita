@@ -91,4 +91,42 @@ class TaskRepositoryTest {
         assertThat(taskRepository.findById(savedTask.getId()))
                 .isEmpty();
     }
+
+    @Test
+    void shouldUpdateTask() {
+        Task task = new Task();
+        task.setTitle("Original title");
+        task.setDescription("Original description");
+
+        Task savedTask = taskRepository.saveAndFlush(task);
+
+        assertThat(savedTask.getUpdatedAt()).isNotNull();
+
+        var originalUpdatedAt = savedTask.getUpdatedAt();
+
+        savedTask.setTitle("Updated title");
+        savedTask.setDescription("Updated description");
+        savedTask.setStatus(TaskStatus.DONE);
+        savedTask.setPriority(TaskPriority.HIGH);
+
+        Task updatedTask = taskRepository.saveAndFlush(savedTask);
+
+        assertThat(updatedTask.getTitle()).isEqualTo("Updated title");
+        assertThat(updatedTask.getDescription())
+                .isEqualTo("Updated description");
+        assertThat(updatedTask.getStatus()).isEqualTo(TaskStatus.DONE);
+        assertThat(updatedTask.getPriority()).isEqualTo(TaskPriority.HIGH);
+        assertThat(updatedTask.getUpdatedAt())
+                .isAfterOrEqualTo(originalUpdatedAt);
+
+        Task foundTask = taskRepository.findById(savedTask.getId())
+                .orElseThrow();
+
+        assertThat(foundTask.getTitle()).isEqualTo("Updated title");
+        assertThat(foundTask.getDescription())
+                .isEqualTo("Updated description");
+        assertThat(foundTask.getStatus()).isEqualTo(TaskStatus.DONE);
+        assertThat(foundTask.getPriority()).isEqualTo(TaskPriority.HIGH);
+    }
+
 }
