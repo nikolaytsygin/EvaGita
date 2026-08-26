@@ -1,5 +1,6 @@
 package com.eva.evagita.repository;
 
+import com.eva.evagita.PostgresIntegrationTest;
 import org.junit.jupiter.api.BeforeEach;
 import com.eva.evagita.model.Task;
 import com.eva.evagita.model.TaskPriority;
@@ -11,7 +12,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
-class TaskRepositoryTest {
+class TaskRepositoryTest extends PostgresIntegrationTest {
 
     @Autowired
     private TaskRepository taskRepository;
