@@ -20,7 +20,12 @@ pipeline {
 
                     env.IMAGE_TAG = env.GIT_SHA
 
-                    sh "docker build -t evagita-backend:${env.IMAGE_TAG} backend"
+                    sh """
+                        docker build \
+                            -t evagita-backend:${env.IMAGE_TAG} \
+                            -t evagita-backend:latest \
+                            backend
+                    """
                 }
             }
         }
@@ -77,6 +82,12 @@ pipeline {
 
                         docker push \
                             "$DOCKER_USERNAME/evagita-backend:${IMAGE_TAG}"
+
+                        docker tag evagita-backend:latest \
+                            "$DOCKER_USERNAME/evagita-backend:latest"
+
+                        docker push \
+                            "$DOCKER_USERNAME/evagita-backend:latest"
 
                         docker logout
                     '''
