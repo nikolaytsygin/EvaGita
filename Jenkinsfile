@@ -2,12 +2,58 @@ pipeline {
     agent any
 
     stages {
-        stage('Build and Test') {
+        stage('Build & Test') {
             steps {
                 dir('backend') {
                     sh './mvnw test'
                 }
             }
+        }
+
+        stage('Docker Build') {
+            steps {
+                sh 'docker build -t evagita-backend:ci ./backend'
+            }
+        }
+
+        stage('Docker Runtime Test') {
+            steps {
+                sh '''
+                    BACKEND_PORT=18081 \
+                    POSTGRES_PORT=5433 \
+                    docker compose up -d --no-build
+                '''
+            }
+        }
+
+        stage('Health Check') {
+            steps {
+                sh '''
+                    for i in $(seq 1 30); do
+                        if curl -fsS http://localhost:18081/actuator/health; then
+                            echo
+                            echo "Backend health check passed"
+                            exit 0
+                        fi
+
+                        echo "Waiting for backend..."
+                        sleep 2
+                    done
+
+                    echo "Backend health check failed"
+                    exit 1
+                '''
+            }
+        }
+    }
+
+    post {
+        always {
+            sh '''
+                BACKEND_PORT=18081 \
+                POSTGRES_PORT=5433 \
+                docker compose down -v || true
+            '''
         }
     }
 }

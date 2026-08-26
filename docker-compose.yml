@@ -1,16 +1,36 @@
 services:
   postgres:
     image: postgres:17
-    container_name: evagita-postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: evagita
       POSTGRES_USER: evagita
       POSTGRES_PASSWORD: evagita_dev
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U evagita -d evagita"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    image: evagita-backend:ci
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/evagita
+      SPRING_DATASOURCE_USERNAME: evagita
+      SPRING_DATASOURCE_PASSWORD: evagita_dev
+    ports:
+      - "${BACKEND_PORT:-18080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 volumes:
   postgres_data:
