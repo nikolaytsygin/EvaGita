@@ -12,13 +12,23 @@ pipeline {
 
         stage('Docker Build') {
             steps {
-                sh 'docker build -t evagita-backend:ci ./backend'
+                script {
+                    env.GIT_SHA = sh(
+                        script: 'git rev-parse --short HEAD',
+                        returnStdout: true
+                    ).trim()
+
+                    env.IMAGE_TAG = env.GIT_SHA
+
+                    sh "docker build -t evagita-backend:${env.IMAGE_TAG} backend"
+                }
             }
         }
 
         stage('Docker Runtime Test') {
             steps {
                 sh '''
+                    IMAGE_TAG="$IMAGE_TAG" \
                     BACKEND_PORT=18081 \
                     POSTGRES_PORT=5433 \
                     docker compose up -d --no-build
@@ -62,17 +72,11 @@ pipeline {
                             --username "$DOCKER_USERNAME" \
                             --password-stdin
 
-                        docker tag evagita-backend:ci \
-                            "$DOCKER_USERNAME/evagita-backend:${BUILD_NUMBER}"
-
-                        docker tag evagita-backend:ci \
-                            "$DOCKER_USERNAME/evagita-backend:latest"
+                        docker tag evagita-backend:${IMAGE_TAG} \
+                            "$DOCKER_USERNAME/evagita-backend:${IMAGE_TAG}"
 
                         docker push \
-                            "$DOCKER_USERNAME/evagita-backend:${BUILD_NUMBER}"
-
-                        docker push \
-                            "$DOCKER_USERNAME/evagita-backend:latest"
+                            "$DOCKER_USERNAME/evagita-backend:${IMAGE_TAG}"
 
                         docker logout
                     '''
