@@ -1,0 +1,38 @@
+# Java / Maven
+backend/target/
+*.class
+*.jar
+*.war
+
+# IntelliJ IDEA
+.idea/
+*.iml
+
+# VS Code
+.vscode/
+
+# Eclipse
+.classpath
+.project
+.settings/
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Node.js
+frontend/node_modules/
+frontend/dist/
+
+# Temporary files
+*.tmp
+*.swp
