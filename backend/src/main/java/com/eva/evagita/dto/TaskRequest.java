@@ -2,11 +2,13 @@ package com.eva.evagita.dto;
 
 import com.eva.evagita.model.TaskPriority;
 import com.eva.evagita.model.TaskStatus;
+import jakarta.validation.constraints.NotBlank;
 
 import java.time.LocalDate;
 
 public class TaskRequest {
 
+    @NotBlank(message = "Task title must not be empty")
     private String title;
     private String description;
     private TaskStatus status;

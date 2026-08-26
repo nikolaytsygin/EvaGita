@@ -1,5 +1,6 @@
 package com.eva.evagita.controller;
 
+import jakarta.validation.Valid;
 import com.eva.evagita.dto.TaskRequest;
 import com.eva.evagita.dto.TaskResponse;
 import com.eva.evagita.model.Task;
@@ -34,7 +35,7 @@ public class TaskController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public TaskResponse createTask(@RequestBody TaskRequest request) {
+    public TaskResponse createTask(@Valid @RequestBody TaskRequest request) {
         Task task = toEntity(request);
         return toResponse(taskService.createTask(task));
     }
@@ -42,7 +43,7 @@ public class TaskController {
     @PutMapping("/{id}")
     public TaskResponse updateTask(
             @PathVariable Long id,
-            @RequestBody TaskRequest request
+            @Valid @RequestBody TaskRequest request
     ) {
         Task task = toEntity(request);
         return toResponse(taskService.updateTask(id, task));
