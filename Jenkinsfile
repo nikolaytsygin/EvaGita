@@ -45,6 +45,40 @@ pipeline {
                 '''
             }
         }
+
+        stage('Docker Push') {
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'evagita-dockerhub',
+                        usernameVariable: 'DOCKER_USERNAME',
+                        passwordVariable: 'DOCKER_PASSWORD'
+                    )
+                ]) {
+                    sh '''
+                        set -e
+
+                        echo "$DOCKER_PASSWORD" | docker login \
+                            --username "$DOCKER_USERNAME" \
+                            --password-stdin
+
+                        docker tag evagita-backend:ci \
+                            "$DOCKER_USERNAME/evagita-backend:${BUILD_NUMBER}"
+
+                        docker tag evagita-backend:ci \
+                            "$DOCKER_USERNAME/evagita-backend:latest"
+
+                        docker push \
+                            "$DOCKER_USERNAME/evagita-backend:${BUILD_NUMBER}"
+
+                        docker push \
+                            "$DOCKER_USERNAME/evagita-backend:latest"
+
+                        docker logout
+                    '''
+                }
+            }
+        }
     }
 
     post {
