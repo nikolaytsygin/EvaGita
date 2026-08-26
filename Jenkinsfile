@@ -94,6 +94,16 @@ pipeline {
                 }
             }
         }
+        stage('Deploy to Kubernetes') {
+            steps {
+                sh '''
+                    kubectl set image deployment/evagita-backend \
+                        evagita-backend=oolonnad/evagita-backend:${IMAGE_TAG}
+
+                    kubectl rollout status deployment/evagita-backend --timeout=120s
+                '''
+            }
+        }
     }
 
     post {
