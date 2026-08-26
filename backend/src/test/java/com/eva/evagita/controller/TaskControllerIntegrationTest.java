@@ -1,5 +1,6 @@
 package com.eva.evagita.controller;
 
+import com.eva.evagita.PostgresIntegrationTest;
 import com.eva.evagita.model.Task;
 import com.eva.evagita.model.TaskPriority;
 import com.eva.evagita.model.TaskStatus;
@@ -24,7 +25,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @Transactional
-class TaskControllerIntegrationTest {
+class TaskControllerIntegrationTest extends PostgresIntegrationTest {
 
     @Autowired
     private WebApplicationContext webApplicationContext;

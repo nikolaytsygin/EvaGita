@@ -1,5 +1,6 @@
 package com.eva.evagita.service;
 
+import com.eva.evagita.PostgresIntegrationTest;
 import com.eva.evagita.exception.TaskNotFoundException;
 import com.eva.evagita.model.Task;
 import com.eva.evagita.model.TaskPriority;
@@ -18,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 @Transactional
-class TaskServiceIntegrationTest {
+class TaskServiceIntegrationTest extends PostgresIntegrationTest {
 
     @Autowired
     private TaskService taskService;
