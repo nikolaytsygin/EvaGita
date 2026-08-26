@@ -1,11 +1,9 @@
 package com.eva.evagita.service;
 
+import com.eva.evagita.exception.TaskNotFoundException;
+import com.eva.evagita.model.Task;
 import com.eva.evagita.model.TaskPriority;
 import com.eva.evagita.model.TaskStatus;
-
-import java.time.LocalDate;
-
-import com.eva.evagita.model.Task;
 import com.eva.evagita.repository.TaskRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,6 +11,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,6 +34,8 @@ class TaskServiceImplTest {
     @Test
     void createTask_shouldSaveAndReturnTask() {
         Task task = new Task();
+        task.setTitle("Test task");
+
         when(taskRepository.save(task)).thenReturn(task);
 
         Task result = taskService.createTask(task);
@@ -73,18 +74,32 @@ class TaskServiceImplTest {
     }
 
     @Test
-    void getTaskById_shouldThrowExceptionWhenNotFound() {
+    void getTaskById_shouldThrowTaskNotFoundExceptionWhenNotFound() {
         Long id = 999L;
 
         when(taskRepository.findById(id)).thenReturn(Optional.empty());
 
-        RuntimeException exception = assertThrows(
-                RuntimeException.class,
+        TaskNotFoundException exception = assertThrows(
+                TaskNotFoundException.class,
                 () -> taskService.getTaskById(id)
         );
 
-        assertEquals("Task not found: " + id, exception.getMessage());
+        assertEquals("Task with id " + id + " not found", exception.getMessage());
         verify(taskRepository).findById(id);
+    }
+
+    @Test
+    void createTask_shouldThrowExceptionWhenTitleIsEmpty() {
+        Task task = new Task();
+        task.setTitle("");
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> taskService.createTask(task)
+        );
+
+        assertEquals("Task title must not be empty", exception.getMessage());
+        verify(taskRepository, never()).save(any(Task.class));
     }
 
     @Test
@@ -102,36 +117,36 @@ class TaskServiceImplTest {
 
     @Test
     void updateTask_shouldUpdateExistingTaskAndSaveIt() {
-    Long id = 1L;
+        Long id = 1L;
 
-    Task existingTask = new Task();
-    existingTask.setTitle("Old title");
-    existingTask.setDescription("Old description");
-    existingTask.setStatus(TaskStatus.TODO);
-    existingTask.setPriority(TaskPriority.LOW);
-    existingTask.setDueDate(LocalDate.of(2026, 8, 30));
+        Task existingTask = new Task();
+        existingTask.setTitle("Old title");
+        existingTask.setDescription("Old description");
+        existingTask.setStatus(TaskStatus.TODO);
+        existingTask.setPriority(TaskPriority.LOW);
+        existingTask.setDueDate(LocalDate.of(2026, 8, 30));
 
-    Task updatedTask = new Task();
-    updatedTask.setTitle("Updated title");
-    updatedTask.setDescription("Updated description");
-    updatedTask.setStatus(TaskStatus.DONE);
-    updatedTask.setPriority(TaskPriority.HIGH);
-    updatedTask.setDueDate(LocalDate.of(2026, 9, 15));
+        Task updatedTask = new Task();
+        updatedTask.setTitle("Updated title");
+        updatedTask.setDescription("Updated description");
+        updatedTask.setStatus(TaskStatus.DONE);
+        updatedTask.setPriority(TaskPriority.HIGH);
+        updatedTask.setDueDate(LocalDate.of(2026, 9, 15));
 
-    when(taskRepository.findById(id)).thenReturn(Optional.of(existingTask));
-    when(taskRepository.save(existingTask)).thenReturn(existingTask);
+        when(taskRepository.findById(id)).thenReturn(Optional.of(existingTask));
+        when(taskRepository.save(existingTask)).thenReturn(existingTask);
 
-    Task result = taskService.updateTask(id, updatedTask);
+        Task result = taskService.updateTask(id, updatedTask);
 
-    assertEquals("Updated title", existingTask.getTitle());
-    assertEquals("Updated description", existingTask.getDescription());
-    assertEquals(TaskStatus.DONE, existingTask.getStatus());
-    assertEquals(TaskPriority.HIGH, existingTask.getPriority());
-    assertEquals(LocalDate.of(2026, 9, 15), existingTask.getDueDate());
+        assertEquals("Updated title", existingTask.getTitle());
+        assertEquals("Updated description", existingTask.getDescription());
+        assertEquals(TaskStatus.DONE, existingTask.getStatus());
+        assertEquals(TaskPriority.HIGH, existingTask.getPriority());
+        assertEquals(LocalDate.of(2026, 9, 15), existingTask.getDueDate());
 
-    assertSame(existingTask, result);
+        assertSame(existingTask, result);
 
-    verify(taskRepository).findById(id);
-    verify(taskRepository).save(existingTask);
+        verify(taskRepository).findById(id);
+        verify(taskRepository).save(existingTask);
     }
 }

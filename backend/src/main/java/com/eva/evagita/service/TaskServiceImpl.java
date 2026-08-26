@@ -1,5 +1,6 @@
 package com.eva.evagita.service;
 
+import com.eva.evagita.exception.TaskNotFoundException;
 import com.eva.evagita.model.Task;
 import com.eva.evagita.repository.TaskRepository;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,7 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public Task createTask(Task task) {
+        validateTaskTitle(task);
         return taskRepository.save(task);
     }
 
@@ -28,12 +30,14 @@ public class TaskServiceImpl implements TaskService {
     @Override
     public Task getTaskById(Long id) {
         return taskRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Task not found: " + id));
+                .orElseThrow(() -> new TaskNotFoundException(id));
     }
 
     @Override
     public Task updateTask(Long id, Task task) {
         Task existingTask = getTaskById(id);
+
+        validateTaskTitle(task);
 
         existingTask.setTitle(task.getTitle());
         existingTask.setDescription(task.getDescription());
@@ -48,5 +52,11 @@ public class TaskServiceImpl implements TaskService {
     public void deleteTask(Long id) {
         Task existingTask = getTaskById(id);
         taskRepository.delete(existingTask);
+    }
+
+    private void validateTaskTitle(Task task) {
+        if (task.getTitle() == null || task.getTitle().isBlank()) {
+            throw new IllegalArgumentException("Task title must not be empty");
+        }
     }
 }
