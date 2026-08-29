@@ -1,5 +1,6 @@
 package com.eva.evagita.repository;
 
+import com.eva.evagita.config.PostgresTestConfiguration;
 import com.eva.evagita.model.User;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,7 +13,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-class UserRepositoryTest {
+class UserRepositoryTest extends PostgresTestConfiguration {
 
     @Autowired
     private UserRepository userRepository;
