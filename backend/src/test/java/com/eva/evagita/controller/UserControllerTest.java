@@ -83,7 +83,8 @@ class UserControllerTest {
         mockMvc.perform(get("/api/users/username/testuser"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.username").value("testuser"))
-                .andExpect(jsonPath("$.email").value("test@example.com"));
+                .andExpect(jsonPath("$.email").value("test@example.com"))
+                .andExpect(jsonPath("$.password").doesNotExist());
     }
 
     @Test
@@ -99,7 +100,8 @@ class UserControllerTest {
         mockMvc.perform(get("/api/users/email/test@example.com"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.username").value("testuser"))
-                .andExpect(jsonPath("$.email").value("test@example.com"));
+                .andExpect(jsonPath("$.email").value("test@example.com"))
+                .andExpect(jsonPath("$.password").doesNotExist());
     }
 
     @Test
