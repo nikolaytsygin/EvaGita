@@ -1,13 +1,16 @@
 package com.eva.evagita.repository;
 
 import com.eva.evagita.PostgresIntegrationTest;
-import org.junit.jupiter.api.BeforeEach;
 import com.eva.evagita.model.Task;
 import com.eva.evagita.model.TaskPriority;
 import com.eva.evagita.model.TaskStatus;
+import com.eva.evagita.model.User;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -17,23 +20,47 @@ class TaskRepositoryTest extends PostgresIntegrationTest {
     @Autowired
     private TaskRepository taskRepository;
 
+    @Autowired
+    private UserRepository userRepository;
+
+    private User testUser;
+
+    private User anotherUser;
+
     @BeforeEach
     void setUp() {
         taskRepository.deleteAll();
+        userRepository.deleteAll();
 
+        testUser = new User(
+                "task-test-user",
+                "task-test@example.com",
+                "password"
+        );
+
+        anotherUser = new User(
+                "another-task-user",
+                "another-task@example.com",
+                "password"
+        );
+
+        testUser = userRepository.save(testUser);
+        anotherUser = userRepository.save(anotherUser);
     }
-    
+
     @Test
     void shouldSaveAndReadTask() {
         Task task = new Task();
         task.setTitle("Test task");
         task.setDescription("Task created in integration test");
+        task.setUser(testUser);
 
         Task savedTask = taskRepository.save(task);
 
         assertThat(savedTask.getId()).isNotNull();
         assertThat(savedTask.getStatus()).isEqualTo(TaskStatus.TODO);
         assertThat(savedTask.getPriority()).isEqualTo(TaskPriority.MEDIUM);
+        assertThat(savedTask.getUser()).isEqualTo(testUser);
         assertThat(savedTask.getCreatedAt()).isNotNull();
         assertThat(savedTask.getUpdatedAt()).isNotNull();
 
@@ -45,31 +72,69 @@ class TaskRepositoryTest extends PostgresIntegrationTest {
                 .isEqualTo("Task created in integration test");
         assertThat(foundTask.getStatus()).isEqualTo(TaskStatus.TODO);
         assertThat(foundTask.getPriority()).isEqualTo(TaskPriority.MEDIUM);
+        assertThat(foundTask.getUser().getId()).isEqualTo(testUser.getId());
         assertThat(foundTask.getCreatedAt()).isNotNull();
         assertThat(foundTask.getUpdatedAt()).isNotNull();
     }
 
     @Test
-    void shouldFindAllTasks() {
+    void shouldFindAllTasksForSpecificUser() {
         Task firstTask = new Task();
-        firstTask.setTitle("First task");
+        firstTask.setTitle("First user task");
+        firstTask.setUser(testUser);
 
         Task secondTask = new Task();
-        secondTask.setTitle("Second task");
+        secondTask.setTitle("Second user task");
+        secondTask.setUser(testUser);
 
-        taskRepository.save(firstTask);
-        taskRepository.save(secondTask);
+        Task anotherUsersTask = new Task();
+        anotherUsersTask.setTitle("Another user task");
+        anotherUsersTask.setUser(anotherUser);
 
-        assertThat(taskRepository.findAll())
+        taskRepository.saveAll(List.of(
+                firstTask,
+                secondTask,
+                anotherUsersTask
+        ));
+
+        assertThat(taskRepository.findAllByUser(testUser))
                 .hasSize(2)
                 .extracting(Task::getTitle)
-                .containsExactlyInAnyOrder("First task", "Second task");
+                .containsExactlyInAnyOrder(
+                        "First user task",
+                        "Second user task"
+                );
+
+        assertThat(taskRepository.findAllByUser(anotherUser))
+                .hasSize(1)
+                .extracting(Task::getTitle)
+                .containsExactly("Another user task");
+    }
+
+    @Test
+    void shouldFindTaskByIdAndUser() {
+        Task task = new Task();
+        task.setTitle("User task");
+        task.setUser(testUser);
+
+        Task savedTask = taskRepository.save(task);
+
+        assertThat(taskRepository.findByIdAndUser(
+                savedTask.getId(),
+                testUser
+        )).isPresent();
+
+        assertThat(taskRepository.findByIdAndUser(
+                savedTask.getId(),
+                anotherUser
+        )).isEmpty();
     }
 
     @Test
     void shouldCheckTaskExistence() {
         Task task = new Task();
         task.setTitle("Existing task");
+        task.setUser(testUser);
 
         Task savedTask = taskRepository.save(task);
 
@@ -81,6 +146,7 @@ class TaskRepositoryTest extends PostgresIntegrationTest {
     void shouldDeleteTask() {
         Task task = new Task();
         task.setTitle("Task to delete");
+        task.setUser(testUser);
 
         Task savedTask = taskRepository.save(task);
 
@@ -98,6 +164,7 @@ class TaskRepositoryTest extends PostgresIntegrationTest {
         Task task = new Task();
         task.setTitle("Original title");
         task.setDescription("Original description");
+        task.setUser(testUser);
 
         Task savedTask = taskRepository.saveAndFlush(task);
 
@@ -117,6 +184,7 @@ class TaskRepositoryTest extends PostgresIntegrationTest {
                 .isEqualTo("Updated description");
         assertThat(updatedTask.getStatus()).isEqualTo(TaskStatus.DONE);
         assertThat(updatedTask.getPriority()).isEqualTo(TaskPriority.HIGH);
+        assertThat(updatedTask.getUser().getId()).isEqualTo(testUser.getId());
         assertThat(updatedTask.getUpdatedAt())
                 .isAfterOrEqualTo(originalUpdatedAt);
 
@@ -128,6 +196,6 @@ class TaskRepositoryTest extends PostgresIntegrationTest {
                 .isEqualTo("Updated description");
         assertThat(foundTask.getStatus()).isEqualTo(TaskStatus.DONE);
         assertThat(foundTask.getPriority()).isEqualTo(TaskPriority.HIGH);
+        assertThat(foundTask.getUser().getId()).isEqualTo(testUser.getId());
     }
-
 }

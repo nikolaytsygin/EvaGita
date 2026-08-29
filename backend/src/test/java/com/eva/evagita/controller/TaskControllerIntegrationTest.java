@@ -4,7 +4,10 @@ import com.eva.evagita.PostgresIntegrationTest;
 import com.eva.evagita.model.Task;
 import com.eva.evagita.model.TaskPriority;
 import com.eva.evagita.model.TaskStatus;
+import com.eva.evagita.model.User;
 import com.eva.evagita.repository.TaskRepository;
+import com.eva.evagita.repository.UserRepository;
+import com.eva.evagita.security.JwtService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +18,9 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.transaction.annotation.Transactional;
 
+
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -33,20 +38,55 @@ class TaskControllerIntegrationTest extends PostgresIntegrationTest {
     @Autowired
     private TaskRepository taskRepository;
 
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private JwtService jwtService;
+
     private MockMvc mockMvc;
+
+    private User testUser;
+
+    private User anotherUser;
+
+    private String testUserToken;
+
+    private String anotherUserToken;
 
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders
                 .webAppContextSetup(webApplicationContext)
+                .apply(springSecurity())
                 .build();
 
         taskRepository.deleteAll();
+        userRepository.deleteAll();
+
+        testUser = new User(
+                "integration-test-user",
+                "integration-test@example.com",
+                "password"
+        );
+
+        anotherUser = new User(
+                "another-integration-user",
+                "another-integration@example.com",
+                "password"
+        );
+
+        testUser = userRepository.save(testUser);
+        anotherUser = userRepository.save(anotherUser);
+
+        testUserToken = jwtService.generateToken(testUser.getUsername());
+        anotherUserToken = jwtService.generateToken(anotherUser.getUsername());
     }
 
     @Test
     void shouldCreateTaskThroughRestApi() throws Exception {
         mockMvc.perform(post("/api/tasks")
+                        .header("Authorization", "Bearer " + testUserToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -58,46 +98,99 @@ class TaskControllerIntegrationTest extends PostgresIntegrationTest {
                                 """))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNumber())
-                .andExpect(jsonPath("$.title").value("REST integration task"))
+                .andExpect(jsonPath("$.title")
+                        .value("REST integration task"))
                 .andExpect(jsonPath("$.description")
                         .value("Created through REST API"))
                 .andExpect(jsonPath("$.status").value("TODO"))
                 .andExpect(jsonPath("$.priority").value("MEDIUM"));
 
         assertThat(taskRepository.count()).isEqualTo(1);
+
+        Task createdTask = taskRepository.findAll().getFirst();
+
+        assertThat(createdTask.getUser().getId())
+                .isEqualTo(testUser.getId());
     }
 
     @Test
-    void shouldGetTaskThroughRestApi() throws Exception {
-        Task task = new Task();
-        task.setTitle("Task for GET");
-        task.setDescription("GET integration test");
-        task.setStatus(TaskStatus.TODO);
-        task.setPriority(TaskPriority.MEDIUM);
+    void shouldGetOnlyCurrentUsersTasksThroughRestApi() throws Exception {
+        Task firstTask = createTask(
+                "First user task",
+                testUser
+        );
 
-        Task savedTask = taskRepository.saveAndFlush(task);
+        Task secondTask = createTask(
+                "Second user task",
+                testUser
+        );
 
-        mockMvc.perform(get("/api/tasks/" + savedTask.getId()))
+        createTask(
+                "Another user task",
+                anotherUser
+        );
+
+        mockMvc.perform(get("/api/tasks")
+                        .header(
+                                "Authorization",
+                                "Bearer " + testUserToken
+                        ))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(savedTask.getId()))
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[*].id")
+                        .value(org.hamcrest.Matchers.containsInAnyOrder(
+                                firstTask.getId().intValue(),
+                                secondTask.getId().intValue()
+                        )))
+                .andExpect(jsonPath("$[*].title")
+                        .value(org.hamcrest.Matchers.containsInAnyOrder(
+                                "First user task",
+                                "Second user task"
+                        )));
+    }
+
+    @Test
+    void shouldGetOwnTaskThroughRestApi() throws Exception {
+        Task task = createTask(
+                "Task for GET",
+                testUser
+        );
+
+        mockMvc.perform(get("/api/tasks/" + task.getId())
+                        .header("Authorization", "Bearer " + testUserToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(task.getId()))
                 .andExpect(jsonPath("$.title").value("Task for GET"))
-                .andExpect(jsonPath("$.description")
-                        .value("GET integration test"))
                 .andExpect(jsonPath("$.status").value("TODO"))
                 .andExpect(jsonPath("$.priority").value("MEDIUM"));
     }
 
     @Test
-    void shouldUpdateTaskThroughRestApi() throws Exception {
-        Task task = new Task();
-        task.setTitle("Original title");
-        task.setDescription("Original description");
-        task.setStatus(TaskStatus.TODO);
-        task.setPriority(TaskPriority.MEDIUM);
+    void shouldReturn404WhenGettingAnotherUsersTask() throws Exception {
+        Task task = createTask(
+                "Private task",
+                anotherUser
+        );
 
-        Task savedTask = taskRepository.saveAndFlush(task);
+        mockMvc.perform(get("/api/tasks/" + task.getId())
+                        .header("Authorization", "Bearer " + testUserToken))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.error").value("Not Found"))
+                .andExpect(jsonPath("$.message")
+                        .value("Task with id " + task.getId() + " not found"))
+                .andExpect(jsonPath("$.timestamp").exists());
+    }
 
-        mockMvc.perform(put("/api/tasks/" + savedTask.getId())
+    @Test
+    void shouldUpdateOwnTaskThroughRestApi() throws Exception {
+        Task task = createTask(
+                "Original title",
+                testUser
+        );
+
+        mockMvc.perform(put("/api/tasks/" + task.getId())
+                        .header("Authorization", "Bearer " + testUserToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -108,7 +201,7 @@ class TaskControllerIntegrationTest extends PostgresIntegrationTest {
                                 }
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(savedTask.getId()))
+                .andExpect(jsonPath("$.id").value(task.getId()))
                 .andExpect(jsonPath("$.title")
                         .value("Updated through REST"))
                 .andExpect(jsonPath("$.description")
@@ -116,36 +209,78 @@ class TaskControllerIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.status").value("DONE"))
                 .andExpect(jsonPath("$.priority").value("HIGH"));
 
-        Task updatedTask = taskRepository.findById(savedTask.getId())
+        Task updatedTask = taskRepository.findById(task.getId())
                 .orElseThrow();
 
         assertThat(updatedTask.getTitle())
                 .isEqualTo("Updated through REST");
-        assertThat(updatedTask.getDescription())
-                .isEqualTo("Updated description");
-        assertThat(updatedTask.getStatus())
-                .isEqualTo(TaskStatus.DONE);
-        assertThat(updatedTask.getPriority())
-                .isEqualTo(TaskPriority.HIGH);
+        assertThat(updatedTask.getUser().getId())
+                .isEqualTo(testUser.getId());
     }
 
     @Test
-    void shouldDeleteTaskThroughRestApi() throws Exception {
-        Task task = new Task();
-        task.setTitle("Task for DELETE");
+    void shouldReturn404WhenUpdatingAnotherUsersTask() throws Exception {
+        Task task = createTask(
+                "Private task",
+                anotherUser
+        );
 
-        Task savedTask = taskRepository.saveAndFlush(task);
+        mockMvc.perform(put("/api/tasks/" + task.getId())
+                        .header("Authorization", "Bearer " + testUserToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Unauthorized update",
+                                  "description": "Should not be saved",
+                                  "status": "DONE",
+                                  "priority": "HIGH"
+                                }
+                                """))
+                .andExpect(status().isNotFound());
 
-        mockMvc.perform(delete("/api/tasks/" + savedTask.getId()))
+        Task unchangedTask = taskRepository.findById(task.getId())
+                .orElseThrow();
+
+        assertThat(unchangedTask.getTitle())
+                .isEqualTo("Private task");
+        assertThat(unchangedTask.getUser().getId())
+                .isEqualTo(anotherUser.getId());
+    }
+
+    @Test
+    void shouldDeleteOwnTaskThroughRestApi() throws Exception {
+        Task task = createTask(
+                "Task for DELETE",
+                testUser
+        );
+
+        mockMvc.perform(delete("/api/tasks/" + task.getId())
+                        .header("Authorization", "Bearer " + testUserToken))
                 .andExpect(status().isNoContent());
 
-        assertThat(taskRepository.existsById(savedTask.getId()))
+        assertThat(taskRepository.existsById(task.getId()))
                 .isFalse();
     }
 
     @Test
+    void shouldReturn404WhenDeletingAnotherUsersTask() throws Exception {
+        Task task = createTask(
+                "Private task",
+                anotherUser
+        );
+
+        mockMvc.perform(delete("/api/tasks/" + task.getId())
+                        .header("Authorization", "Bearer " + testUserToken))
+                .andExpect(status().isNotFound());
+
+        assertThat(taskRepository.existsById(task.getId()))
+                .isTrue();
+    }
+
+    @Test
     void shouldReturn404WhenTaskDoesNotExist() throws Exception {
-        mockMvc.perform(get("/api/tasks/999999"))
+        mockMvc.perform(get("/api/tasks/999999")
+                        .header("Authorization", "Bearer " + testUserToken))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.error").value("Not Found"))
@@ -157,6 +292,7 @@ class TaskControllerIntegrationTest extends PostgresIntegrationTest {
     @Test
     void shouldReturn400WhenCreatingTaskWithEmptyTitle() throws Exception {
         mockMvc.perform(post("/api/tasks")
+                        .header("Authorization", "Bearer " + testUserToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -174,5 +310,15 @@ class TaskControllerIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.timestamp").exists());
 
         assertThat(taskRepository.count()).isZero();
+    }
+
+    private Task createTask(String title, User user) {
+        Task task = new Task();
+        task.setTitle(title);
+        task.setStatus(TaskStatus.TODO);
+        task.setPriority(TaskPriority.MEDIUM);
+        task.setUser(user);
+
+        return taskRepository.saveAndFlush(task);
     }
 }

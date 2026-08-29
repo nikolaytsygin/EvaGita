@@ -2,6 +2,7 @@ package com.eva.evagita.service;
 
 import com.eva.evagita.exception.TaskNotFoundException;
 import com.eva.evagita.model.Task;
+import com.eva.evagita.model.User;
 import com.eva.evagita.repository.TaskRepository;
 import org.springframework.stereotype.Service;
 
@@ -23,19 +24,19 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public List<Task> getAllTasks() {
-        return taskRepository.findAll();
+    public List<Task> getAllTasks(User user) {
+        return taskRepository.findAllByUser(user);
     }
 
     @Override
-    public Task getTaskById(Long id) {
-        return taskRepository.findById(id)
+    public Task getTaskById(Long id, User user) {
+        return taskRepository.findByIdAndUser(id, user)
                 .orElseThrow(() -> new TaskNotFoundException(id));
     }
 
     @Override
-    public Task updateTask(Long id, Task task) {
-        Task existingTask = getTaskById(id);
+    public Task updateTask(Long id, Task task, User user) {
+        Task existingTask = getTaskById(id, user);
 
         validateTaskTitle(task);
 
@@ -49,8 +50,8 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public void deleteTask(Long id) {
-        Task existingTask = getTaskById(id);
+    public void deleteTask(Long id, User user) {
+        Task existingTask = getTaskById(id, user);
         taskRepository.delete(existingTask);
     }
 

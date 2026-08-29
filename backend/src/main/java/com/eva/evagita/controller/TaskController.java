@@ -1,11 +1,16 @@
 package com.eva.evagita.controller;
 
-import jakarta.validation.Valid;
 import com.eva.evagita.dto.TaskRequest;
 import com.eva.evagita.dto.TaskResponse;
+import com.eva.evagita.exception.UserNotFoundException;
 import com.eva.evagita.model.Task;
+import com.eva.evagita.model.User;
+import com.eva.evagita.repository.UserRepository;
 import com.eva.evagita.service.TaskService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -15,14 +20,24 @@ import java.util.List;
 public class TaskController {
 
     private final TaskService taskService;
+    private final UserRepository userRepository;
 
-    public TaskController(TaskService taskService) {
+    public TaskController(
+            TaskService taskService,
+            UserRepository userRepository
+    ) {
         this.taskService = taskService;
+        this.userRepository = userRepository;
     }
 
     @GetMapping
     public List<TaskResponse> getAllTasks() {
-        return taskService.getAllTasks()
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        User currentUser = getCurrentUser(authentication);
+
+        return taskService.getAllTasks(currentUser)
                 .stream()
                 .map(this::toResponse)
                 .toList();
@@ -30,13 +45,27 @@ public class TaskController {
 
     @GetMapping("/{id}")
     public TaskResponse getTaskById(@PathVariable Long id) {
-        return toResponse(taskService.getTaskById(id));
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        User currentUser = getCurrentUser(authentication);
+
+        return toResponse(taskService.getTaskById(id, currentUser));
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public TaskResponse createTask(@Valid @RequestBody TaskRequest request) {
+    public TaskResponse createTask(
+            @Valid @RequestBody TaskRequest request
+    ) {
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        User currentUser = getCurrentUser(authentication);
+
         Task task = toEntity(request);
+        task.setUser(currentUser);
+
         return toResponse(taskService.createTask(task));
     }
 
@@ -45,14 +74,30 @@ public class TaskController {
             @PathVariable Long id,
             @Valid @RequestBody TaskRequest request
     ) {
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        User currentUser = getCurrentUser(authentication);
+
         Task task = toEntity(request);
-        return toResponse(taskService.updateTask(id, task));
+        return toResponse(taskService.updateTask(id, task, currentUser));
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteTask(@PathVariable Long id) {
-        taskService.deleteTask(id);
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        User currentUser = getCurrentUser(authentication);
+
+        taskService.deleteTask(id, currentUser);
+    }
+
+    private User getCurrentUser(Authentication authentication) {
+        return userRepository.findByUsername(authentication.getName())
+                .orElseThrow(() ->
+                        new UserNotFoundException(authentication.getName()));
     }
 
     private Task toEntity(TaskRequest request) {
