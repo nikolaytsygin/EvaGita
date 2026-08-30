@@ -72,6 +72,110 @@ class TaskServiceImplTest {
     }
 
     @Test
+    void searchTasks_shouldReturnTasksMatchingTitleIgnoreCase() {
+        Task task1 = new Task();
+        task1.setTitle("Learn Git");
+
+        Task task2 = new Task();
+        task2.setTitle("GitHub project");
+
+        List<Task> tasks = List.of(task1, task2);
+
+        when(taskRepository.findAllByUserAndTitleContainingIgnoreCase(
+                testUser,
+                "git"
+        )).thenReturn(tasks);
+
+        List<Task> result = taskService.searchTasks("git", testUser);
+
+        assertEquals(tasks, result);
+
+        verify(taskRepository)
+                .findAllByUserAndTitleContainingIgnoreCase(
+                        testUser,
+                        "git"
+                );
+    }
+
+    @Test
+    void searchTasksByDescription_shouldReturnTasksMatchingDescriptionIgnoreCase() {
+        Task task1 = new Task();
+        task1.setTitle("Task 1");
+        task1.setDescription("Learn Docker");
+
+        Task task2 = new Task();
+        task2.setTitle("Task 2");
+        task2.setDescription("Docker Compose practice");
+
+        List<Task> tasks = List.of(task1, task2);
+
+        when(taskRepository.findAllByUserAndDescriptionContainingIgnoreCase(
+                testUser,
+                "docker"
+        )).thenReturn(tasks);
+
+        List<Task> result =
+                taskService.searchTasksByDescription("docker", testUser);
+
+        assertEquals(tasks, result);
+
+        verify(taskRepository)
+                .findAllByUserAndDescriptionContainingIgnoreCase(
+                        testUser,
+                        "docker"
+                );
+    }
+
+    @Test
+    void searchTasksByDescription_shouldReturnEmptyListWhenDescriptionIsEmpty() {
+        List<Task> result =
+                taskService.searchTasksByDescription("", testUser);
+
+        assertTrue(result.isEmpty());
+
+        verify(taskRepository, never())
+                .findAllByUserAndDescriptionContainingIgnoreCase(
+                        any(),
+                        any()
+                );
+    }
+
+    @Test
+    void searchTasksByDescription_shouldReturnEmptyListWhenDescriptionIsNull() {
+        List<Task> result =
+                taskService.searchTasksByDescription(null, testUser);
+
+        assertTrue(result.isEmpty());
+
+        verify(taskRepository, never())
+                .findAllByUserAndDescriptionContainingIgnoreCase(
+                        any(),
+                        any()
+                );
+    }
+
+    @Test
+    void searchTasks_shouldReturnEmptyListWhenNothingMatches() {
+        when(taskRepository.findAllByUserAndTitleContainingIgnoreCase(
+                testUser,
+                "missing"
+        )).thenReturn(List.of());
+
+        List<Task> result = taskService.searchTasks(
+                "missing",
+                testUser
+        );
+
+        assertTrue(result.isEmpty());
+
+        verify(taskRepository)
+                .findAllByUserAndTitleContainingIgnoreCase(
+                        testUser,
+                        "missing"
+                );
+    }
+
+    @Test
     void getTaskById_shouldReturnTaskWhenExistsForUser() {
         Long id = 1L;
         Task task = new Task();

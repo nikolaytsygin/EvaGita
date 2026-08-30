@@ -112,6 +112,125 @@ class TaskRepositoryTest extends PostgresIntegrationTest {
     }
 
     @Test
+    void shouldFindTasksByTitlePartiallyAndIgnoreCaseForSpecificUser() {
+        Task firstTask = new Task();
+        firstTask.setTitle("Learn Git");
+        firstTask.setUser(testUser);
+
+        Task secondTask = new Task();
+        secondTask.setTitle("GitHub project");
+        secondTask.setUser(testUser);
+
+        Task thirdTask = new Task();
+        thirdTask.setTitle("Prepare presentation");
+        thirdTask.setUser(testUser);
+
+        Task anotherUsersTask = new Task();
+        anotherUsersTask.setTitle("Git basics");
+        anotherUsersTask.setUser(anotherUser);
+
+        taskRepository.saveAll(List.of(
+                firstTask,
+                secondTask,
+                thirdTask,
+                anotherUsersTask
+        ));
+
+        List<Task> result =
+                taskRepository.findAllByUserAndTitleContainingIgnoreCase(
+                        testUser,
+                        "GIT"
+                );
+
+        assertThat(result)
+                .hasSize(2)
+                .extracting(Task::getTitle)
+                .containsExactlyInAnyOrder(
+                        "Learn Git",
+                        "GitHub project"
+                );
+    }
+
+    @Test
+    void shouldReturnEmptyListWhenTitleDoesNotMatch() {
+        Task task = new Task();
+        task.setTitle("Learn Git");
+        task.setUser(testUser);
+
+        taskRepository.save(task);
+
+        List<Task> result =
+                taskRepository.findAllByUserAndTitleContainingIgnoreCase(
+                        testUser,
+                        "docker"
+                );
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void shouldFindTasksByDescriptionPartiallyAndIgnoreCaseForSpecificUser() {
+        Task firstTask = new Task();
+        firstTask.setTitle("Docker task");
+        firstTask.setDescription("Learn Docker Compose");
+        firstTask.setUser(testUser);
+
+        Task secondTask = new Task();
+        secondTask.setTitle("Container task");
+        secondTask.setDescription("Docker containers practice");
+        secondTask.setUser(testUser);
+
+        Task thirdTask = new Task();
+        thirdTask.setTitle("Git task");
+        thirdTask.setDescription("Learn Git");
+        thirdTask.setUser(testUser);
+
+        Task anotherUsersTask = new Task();
+        anotherUsersTask.setTitle("Other Docker task");
+        anotherUsersTask.setDescription("Docker for another user");
+        anotherUsersTask.setUser(anotherUser);
+
+        taskRepository.saveAll(List.of(
+                firstTask,
+                secondTask,
+                thirdTask,
+                anotherUsersTask
+        ));
+
+        List<Task> result =
+                taskRepository.findAllByUserAndDescriptionContainingIgnoreCase(
+                        testUser,
+                        "DOCKER"
+                );
+
+        assertThat(result)
+                .hasSize(2)
+                .extracting(Task::getTitle)
+                .containsExactlyInAnyOrder(
+                        "Docker task",
+                        "Container task"
+                );
+    }
+
+    @Test
+    void shouldNotFindTaskWithNullDescription() {
+        Task task = new Task();
+        task.setTitle("Task without description");
+        task.setDescription(null);
+        task.setUser(testUser);
+
+        taskRepository.save(task);
+
+        List<Task> result =
+                taskRepository.findAllByUserAndDescriptionContainingIgnoreCase(
+                        testUser,
+                        "docker"
+                );
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
     void shouldFindTaskByIdAndUser() {
         Task task = new Task();
         task.setTitle("User task");

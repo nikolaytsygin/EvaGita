@@ -13,5 +13,11 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     List<Task> findAllByUser(User user);
 
     @EntityGraph(attributePaths = "tags")
+    List<Task> findAllByUserAndTitleContainingIgnoreCase(User user, String title);
+
+    @EntityGraph(attributePaths = "tags")
+    List<Task> findAllByUserAndDescriptionContainingIgnoreCase(User user, String description);
+
+    @EntityGraph(attributePaths = "tags")
     Optional<Task> findByIdAndUser(Long id, User user);
 }

@@ -50,6 +50,26 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
+    public List<Task> searchTasks(String title, User user) {
+        return taskRepository.findAllByUserAndTitleContainingIgnoreCase(
+                user,
+                title
+        );
+    }
+
+    @Override
+    public List<Task> searchTasksByDescription(String description, User user) {
+        if (description == null || description.isBlank()) {
+            return List.of();
+        }
+
+        return taskRepository.findAllByUserAndDescriptionContainingIgnoreCase(
+                user,
+                description
+        );
+    }
+
+    @Override
     public Task getTaskById(Long id, User user) {
         return taskRepository.findByIdAndUser(id, user)
                 .orElseThrow(() -> new TaskNotFoundException(id));

@@ -12,6 +12,10 @@ public interface TaskService {
 
     List<Task> getAllTasks(User user);
 
+    List<Task> searchTasks(String title, User user);
+
+    List<Task> searchTasksByDescription(String description, User user);
+
     Task getTaskById(Long id, User user);
 
     Task updateTask(Long id, Task task, User user);

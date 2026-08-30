@@ -44,6 +44,36 @@ public class TaskController {
                 .toList();
     }
 
+    @GetMapping("/search")
+    public List<TaskResponse> searchTasks(
+            @RequestParam String title
+    ) {
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        User currentUser = getCurrentUser(authentication);
+
+        return taskService.searchTasks(title, currentUser)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @GetMapping("/search/description")
+    public List<TaskResponse> searchTasksByDescription(
+            @RequestParam String description
+    ) {
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        User currentUser = getCurrentUser(authentication);
+
+        return taskService.searchTasksByDescription(description, currentUser)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
     @GetMapping("/{id}")
     public TaskResponse getTaskById(@PathVariable Long id) {
         Authentication authentication =

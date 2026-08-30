@@ -92,6 +92,79 @@ class TaskControllerTest {
     }
 
     @Test
+    void shouldSearchTasksByTitlePartiallyAndIgnoreCase() throws Exception {
+        Task task1 = new Task();
+        task1.setId(1L);
+        task1.setTitle("Learn Git");
+        task1.setStatus(TaskStatus.TODO);
+        task1.setPriority(TaskPriority.MEDIUM);
+        task1.setUser(testUser);
+
+        Task task2 = new Task();
+        task2.setId(2L);
+        task2.setTitle("GitHub project");
+        task2.setStatus(TaskStatus.IN_PROGRESS);
+        task2.setPriority(TaskPriority.HIGH);
+        task2.setUser(testUser);
+
+        when(taskService.searchTasks("git", testUser))
+                .thenReturn(List.of(task1, task2));
+
+        mockMvc.perform(get("/api/tasks/search")
+                        .param("title", "git")
+                        .with(user("test-user")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].id").value(1))
+                .andExpect(jsonPath("$[0].title").value("Learn Git"))
+                .andExpect(jsonPath("$[1].id").value(2))
+                .andExpect(jsonPath("$[1].title").value("GitHub project"));
+
+        verify(taskService).searchTasks("git", testUser);
+    }
+
+    @Test
+    void shouldReturnEmptyListWhenTaskTitleDoesNotMatch() throws Exception {
+        when(taskService.searchTasks("missing", testUser))
+                .thenReturn(List.of());
+
+        mockMvc.perform(get("/api/tasks/search")
+                        .param("title", "missing")
+                        .with(user("test-user")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+
+        verify(taskService).searchTasks("missing", testUser);
+    }
+
+    @Test
+    void shouldSearchTasksByDescriptionPartiallyAndIgnoreCase() throws Exception {
+        Task task = new Task();
+        task.setId(1L);
+        task.setTitle("Docker task");
+        task.setDescription("Learn Docker Compose");
+        task.setStatus(TaskStatus.TODO);
+        task.setPriority(TaskPriority.MEDIUM);
+        task.setUser(testUser);
+
+        when(taskService.searchTasksByDescription("docker", testUser))
+                .thenReturn(List.of(task));
+
+        mockMvc.perform(get("/api/tasks/search/description")
+                        .param("description", "docker")
+                        .with(user("test-user")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(1))
+                .andExpect(jsonPath("$[0].title").value("Docker task"))
+                .andExpect(jsonPath("$[0].description")
+                        .value("Learn Docker Compose"));
+
+        verify(taskService)
+                .searchTasksByDescription("docker", testUser);
+    }
+
+    @Test
     void shouldGetTaskById() throws Exception {
         Task task = new Task();
         task.setId(1L);
