@@ -4,6 +4,7 @@ import com.eva.evagita.model.Tag;
 import com.eva.evagita.model.Task;
 import com.eva.evagita.model.User;
 
+import java.time.LocalDate;
 import java.util.List;
 
 public interface TaskService {
@@ -11,6 +12,12 @@ public interface TaskService {
     Task createTask(Task task);
 
     List<Task> getAllTasks(User user);
+
+    List<Task> getTasksByDueDate(
+            LocalDate dueDateFrom,
+            LocalDate dueDateTo,
+            User user
+    );
 
     List<Task> searchTasks(String title, User user);
 

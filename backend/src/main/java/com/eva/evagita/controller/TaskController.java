@@ -14,6 +14,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -32,14 +33,28 @@ public class TaskController {
     }
 
     @GetMapping
-    public List<TaskResponse> getAllTasks() {
+    public List<TaskResponse> getAllTasks(
+            @RequestParam(required = false) LocalDate dueDateFrom,
+            @RequestParam(required = false) LocalDate dueDateTo
+    ) {
         Authentication authentication =
                 SecurityContextHolder.getContext().getAuthentication();
 
         User currentUser = getCurrentUser(authentication);
 
-        return taskService.getAllTasks(currentUser)
-                .stream()
+        List<Task> tasks;
+
+        if (dueDateFrom != null || dueDateTo != null) {
+            tasks = taskService.getTasksByDueDate(
+                    dueDateFrom,
+                    dueDateTo,
+                    currentUser
+            );
+        } else {
+            tasks = taskService.getAllTasks(currentUser);
+        }
+
+        return tasks.stream()
                 .map(this::toResponse)
                 .toList();
     }

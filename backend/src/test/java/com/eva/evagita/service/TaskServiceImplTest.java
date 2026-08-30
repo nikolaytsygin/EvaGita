@@ -321,4 +321,138 @@ class TaskServiceImplTest {
         verify(taskRepository).findByIdAndUser(id, testUser);
         verify(taskRepository, never()).save(any(Task.class));
     }
+
+
+    @Test
+    void getTasksByDueDate_shouldReturnTasksBetweenDates() {
+        LocalDate dueDateFrom = LocalDate.of(2026, 8, 1);
+        LocalDate dueDateTo = LocalDate.of(2026, 8, 31);
+
+        Task task1 = new Task();
+        task1.setDueDate(LocalDate.of(2026, 8, 10));
+
+        Task task2 = new Task();
+        task2.setDueDate(LocalDate.of(2026, 8, 31));
+
+        List<Task> tasks = List.of(task1, task2);
+
+        when(taskRepository.findAllByUserAndDueDateBetween(
+                testUser,
+                dueDateFrom,
+                dueDateTo
+        )).thenReturn(tasks);
+
+        List<Task> result = taskService.getTasksByDueDate(
+                dueDateFrom,
+                dueDateTo,
+                testUser
+        );
+
+        assertEquals(tasks, result);
+
+        verify(taskRepository).findAllByUserAndDueDateBetween(
+                testUser,
+                dueDateFrom,
+                dueDateTo
+        );
+        verify(taskRepository, never())
+                .findAllByUserAndDueDateGreaterThanEqual(any(), any());
+        verify(taskRepository, never())
+                .findAllByUserAndDueDateLessThanEqual(any(), any());
+        verify(taskRepository, never()).findAllByUser(testUser);
+    }
+
+    @Test
+    void getTasksByDueDate_shouldReturnTasksFromDate() {
+        LocalDate dueDateFrom = LocalDate.of(2026, 8, 15);
+
+        Task task = new Task();
+        task.setDueDate(LocalDate.of(2026, 8, 20));
+
+        List<Task> tasks = List.of(task);
+
+        when(taskRepository.findAllByUserAndDueDateGreaterThanEqual(
+                testUser,
+                dueDateFrom
+        )).thenReturn(tasks);
+
+        List<Task> result = taskService.getTasksByDueDate(
+                dueDateFrom,
+                null,
+                testUser
+        );
+
+        assertEquals(tasks, result);
+
+        verify(taskRepository).findAllByUserAndDueDateGreaterThanEqual(
+                testUser,
+                dueDateFrom
+        );
+        verify(taskRepository, never())
+                .findAllByUserAndDueDateBetween(any(), any(), any());
+        verify(taskRepository, never())
+                .findAllByUserAndDueDateLessThanEqual(any(), any());
+        verify(taskRepository, never()).findAllByUser(testUser);
+    }
+
+    @Test
+    void getTasksByDueDate_shouldReturnTasksUntilDate() {
+        LocalDate dueDateTo = LocalDate.of(2026, 8, 31);
+
+        Task task = new Task();
+        task.setDueDate(LocalDate.of(2026, 8, 25));
+
+        List<Task> tasks = List.of(task);
+
+        when(taskRepository.findAllByUserAndDueDateLessThanEqual(
+                testUser,
+                dueDateTo
+        )).thenReturn(tasks);
+
+        List<Task> result = taskService.getTasksByDueDate(
+                null,
+                dueDateTo,
+                testUser
+        );
+
+        assertEquals(tasks, result);
+
+        verify(taskRepository).findAllByUserAndDueDateLessThanEqual(
+                testUser,
+                dueDateTo
+        );
+        verify(taskRepository, never())
+                .findAllByUserAndDueDateBetween(any(), any(), any());
+        verify(taskRepository, never())
+                .findAllByUserAndDueDateGreaterThanEqual(any(), any());
+        verify(taskRepository, never()).findAllByUser(testUser);
+    }
+
+    @Test
+    void getTasksByDueDate_shouldReturnAllTasksWhenDatesAreNull() {
+        Task task1 = new Task();
+        Task task2 = new Task();
+
+        List<Task> tasks = List.of(task1, task2);
+
+        when(taskRepository.findAllByUser(testUser))
+                .thenReturn(tasks);
+
+        List<Task> result = taskService.getTasksByDueDate(
+                null,
+                null,
+                testUser
+        );
+
+        assertEquals(tasks, result);
+
+        verify(taskRepository).findAllByUser(testUser);
+        verify(taskRepository, never())
+                .findAllByUserAndDueDateBetween(any(), any(), any());
+        verify(taskRepository, never())
+                .findAllByUserAndDueDateGreaterThanEqual(any(), any());
+        verify(taskRepository, never())
+                .findAllByUserAndDueDateLessThanEqual(any(), any());
+    }
+
 }

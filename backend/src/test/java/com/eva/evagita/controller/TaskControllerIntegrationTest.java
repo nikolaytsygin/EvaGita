@@ -567,4 +567,167 @@ class TaskControllerIntegrationTest extends PostgresIntegrationTest {
 
         return taskRepository.saveAndFlush(task);
     }
+
+
+    @Test
+    void shouldFilterTasksByDueDateRangeThroughRestApi() throws Exception {
+        Task beforeRange = createTask(
+                "Task before deadline range",
+                testUser
+        );
+        beforeRange.setDueDate(LocalDate.of(2026, 7, 31));
+        beforeRange = taskRepository.saveAndFlush(beforeRange);
+
+        Task firstInRange = createTask(
+                "Task at range start",
+                testUser
+        );
+        firstInRange.setDueDate(LocalDate.of(2026, 8, 1));
+        firstInRange = taskRepository.saveAndFlush(firstInRange);
+
+        Task secondInRange = createTask(
+                "Task in range",
+                testUser
+        );
+        secondInRange.setDueDate(LocalDate.of(2026, 8, 15));
+        secondInRange = taskRepository.saveAndFlush(secondInRange);
+
+        Task atRangeEnd = createTask(
+                "Task at range end",
+                testUser
+        );
+        atRangeEnd.setDueDate(LocalDate.of(2026, 8, 31));
+        atRangeEnd = taskRepository.saveAndFlush(atRangeEnd);
+
+        Task afterRange = createTask(
+                "Task after deadline range",
+                testUser
+        );
+        afterRange.setDueDate(LocalDate.of(2026, 9, 1));
+        afterRange = taskRepository.saveAndFlush(afterRange);
+
+        mockMvc.perform(get("/api/tasks")
+                        .param("dueDateFrom", "2026-08-01")
+                        .param("dueDateTo", "2026-08-31")
+                        .header(
+                                "Authorization",
+                                "Bearer " + testUserToken
+                        ))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(3))
+                .andExpect(jsonPath("$[*].id")
+                        .value(org.hamcrest.Matchers.containsInAnyOrder(
+                                firstInRange.getId().intValue(),
+                                secondInRange.getId().intValue(),
+                                atRangeEnd.getId().intValue()
+                        )));
+    }
+
+    @Test
+    void shouldFilterTasksByDueDateFromThroughRestApi() throws Exception {
+        Task beforeFrom = createTask(
+                "Task before from",
+                testUser
+        );
+        beforeFrom.setDueDate(LocalDate.of(2026, 7, 31));
+        beforeFrom = taskRepository.saveAndFlush(beforeFrom);
+
+        Task atFrom = createTask(
+                "Task at from",
+                testUser
+        );
+        atFrom.setDueDate(LocalDate.of(2026, 8, 1));
+        atFrom = taskRepository.saveAndFlush(atFrom);
+
+        Task afterFrom = createTask(
+                "Task after from",
+                testUser
+        );
+        afterFrom.setDueDate(LocalDate.of(2026, 8, 15));
+        afterFrom = taskRepository.saveAndFlush(afterFrom);
+
+        mockMvc.perform(get("/api/tasks")
+                        .param("dueDateFrom", "2026-08-01")
+                        .header(
+                                "Authorization",
+                                "Bearer " + testUserToken
+                        ))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[*].id")
+                        .value(org.hamcrest.Matchers.containsInAnyOrder(
+                                atFrom.getId().intValue(),
+                                afterFrom.getId().intValue()
+                        )));
+    }
+
+    @Test
+    void shouldFilterTasksByDueDateToThroughRestApi() throws Exception {
+        Task beforeTo = createTask(
+                "Task before to",
+                testUser
+        );
+        beforeTo.setDueDate(LocalDate.of(2026, 8, 15));
+        beforeTo = taskRepository.saveAndFlush(beforeTo);
+
+        Task atTo = createTask(
+                "Task at to",
+                testUser
+        );
+        atTo.setDueDate(LocalDate.of(2026, 8, 31));
+        atTo = taskRepository.saveAndFlush(atTo);
+
+        Task afterTo = createTask(
+                "Task after to",
+                testUser
+        );
+        afterTo.setDueDate(LocalDate.of(2026, 9, 1));
+        afterTo = taskRepository.saveAndFlush(afterTo);
+
+        mockMvc.perform(get("/api/tasks")
+                        .param("dueDateTo", "2026-08-31")
+                        .header(
+                                "Authorization",
+                                "Bearer " + testUserToken
+                        ))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[*].id")
+                        .value(org.hamcrest.Matchers.containsInAnyOrder(
+                                beforeTo.getId().intValue(),
+                                atTo.getId().intValue()
+                        )));
+    }
+
+    @Test
+    void shouldNotReturnAnotherUsersTasksWhenFilteringByDueDate() throws Exception {
+        Task ownTask = createTask(
+                "Own task in date range",
+                testUser
+        );
+        ownTask.setDueDate(LocalDate.of(2026, 8, 15));
+        ownTask = taskRepository.saveAndFlush(ownTask);
+
+        Task anotherUsersTask = createTask(
+                "Another user task in date range",
+                anotherUser
+        );
+        anotherUsersTask.setDueDate(LocalDate.of(2026, 8, 15));
+        anotherUsersTask = taskRepository.saveAndFlush(anotherUsersTask);
+
+        mockMvc.perform(get("/api/tasks")
+                        .param("dueDateFrom", "2026-08-01")
+                        .param("dueDateTo", "2026-08-31")
+                        .header(
+                                "Authorization",
+                                "Bearer " + testUserToken
+                        ))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id")
+                        .value(ownTask.getId()))
+                .andExpect(jsonPath("$[0].title")
+                        .value("Own task in date range"));
+    }
+
 }

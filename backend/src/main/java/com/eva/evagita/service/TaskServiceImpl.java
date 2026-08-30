@@ -12,6 +12,7 @@ import com.eva.evagita.repository.TaskRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -46,6 +47,37 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public List<Task> getAllTasks(User user) {
+        return taskRepository.findAllByUser(user);
+    }
+
+    @Override
+    public List<Task> getTasksByDueDate(
+            LocalDate dueDateFrom,
+            LocalDate dueDateTo,
+            User user
+    ) {
+        if (dueDateFrom != null && dueDateTo != null) {
+            return taskRepository.findAllByUserAndDueDateBetween(
+                    user,
+                    dueDateFrom,
+                    dueDateTo
+            );
+        }
+
+        if (dueDateFrom != null) {
+            return taskRepository.findAllByUserAndDueDateGreaterThanEqual(
+                    user,
+                    dueDateFrom
+            );
+        }
+
+        if (dueDateTo != null) {
+            return taskRepository.findAllByUserAndDueDateLessThanEqual(
+                    user,
+                    dueDateTo
+            );
+        }
+
         return taskRepository.findAllByUser(user);
     }
 
