@@ -404,6 +404,118 @@ class TaskControllerIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
+    void shouldSearchTasksByTitleThroughRestApi() throws Exception {
+        Task firstTask = createTask(
+                "Learn Docker",
+                testUser
+        );
+
+        Task secondTask = createTask(
+                "Docker Compose practice",
+                testUser
+        );
+
+        createTask(
+                "Learn Git",
+                testUser
+        );
+
+        createTask(
+                "Docker for another user",
+                anotherUser
+        );
+
+        mockMvc.perform(get("/api/tasks/search")
+                        .param("title", "Docker")
+                        .header(
+                                "Authorization",
+                                "Bearer " + testUserToken
+                        ))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[*].id")
+                        .value(org.hamcrest.Matchers.containsInAnyOrder(
+                                firstTask.getId().intValue(),
+                                secondTask.getId().intValue()
+                        )))
+                .andExpect(jsonPath("$[*].title")
+                        .value(org.hamcrest.Matchers.containsInAnyOrder(
+                                "Learn Docker",
+                                "Docker Compose practice"
+                        )));
+    }
+
+    @Test
+    void shouldSearchTasksByTitleIgnoringCaseThroughRestApi() throws Exception {
+        Task task = createTask(
+                "Docker Task",
+                testUser
+        );
+
+        mockMvc.perform(get("/api/tasks/search")
+                        .param("title", "docker")
+                        .header(
+                                "Authorization",
+                                "Bearer " + testUserToken
+                        ))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id")
+                        .value(task.getId()))
+                .andExpect(jsonPath("$[0].title")
+                        .value("Docker Task"));
+    }
+
+    @Test
+    void shouldSearchTasksByPartialTitleThroughRestApi() throws Exception {
+        Task firstTask = createTask(
+                "Docker Compose practice",
+                testUser
+        );
+
+        Task secondTask = createTask(
+                "Docker Swarm deployment",
+                testUser
+        );
+
+        createTask(
+                "Learn Kubernetes",
+                testUser
+        );
+
+        mockMvc.perform(get("/api/tasks/search")
+                        .param("title", "Dock")
+                        .header(
+                                "Authorization",
+                                "Bearer " + testUserToken
+                        ))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[*].id")
+                        .value(org.hamcrest.Matchers.containsInAnyOrder(
+                                firstTask.getId().intValue(),
+                                secondTask.getId().intValue()
+                        )));
+    }
+
+    @Test
+    void shouldReturnEmptyListWhenSearchHasNoResults() throws Exception {
+        createTask(
+                "Learn Docker",
+                testUser
+        );
+
+        mockMvc.perform(get("/api/tasks/search")
+                        .param("title", "Kubernetes")
+                        .header(
+                                "Authorization",
+                                "Bearer " + testUserToken
+                        ))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
     void shouldReturn404WhenTaskDoesNotExist() throws Exception {
         mockMvc.perform(get("/api/tasks/999999")
                         .header("Authorization", "Bearer " + testUserToken))
