@@ -10,10 +10,12 @@ public class TaskRequest {
 
     @NotBlank(message = "Task title must not be empty")
     private String title;
+
     private String description;
     private TaskStatus status;
     private TaskPriority priority;
     private LocalDate dueDate;
+    private Long projectId;
 
     public TaskRequest() {
     }
@@ -56,5 +58,13 @@ public class TaskRequest {
 
     public void setDueDate(LocalDate dueDate) {
         this.dueDate = dueDate;
+    }
+
+    public Long getProjectId() {
+        return projectId;
+    }
+
+    public void setProjectId(Long projectId) {
+        this.projectId = projectId;
     }
 }

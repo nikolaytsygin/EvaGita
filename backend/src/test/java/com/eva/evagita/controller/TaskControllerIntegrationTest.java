@@ -1,10 +1,12 @@
 package com.eva.evagita.controller;
 
 import com.eva.evagita.PostgresIntegrationTest;
+import com.eva.evagita.model.Project;
 import com.eva.evagita.model.Task;
 import com.eva.evagita.model.TaskPriority;
 import com.eva.evagita.model.TaskStatus;
 import com.eva.evagita.model.User;
+import com.eva.evagita.repository.ProjectRepository;
 import com.eva.evagita.repository.TaskRepository;
 import com.eva.evagita.repository.UserRepository;
 import com.eva.evagita.security.JwtService;
@@ -39,6 +41,9 @@ class TaskControllerIntegrationTest extends PostgresIntegrationTest {
     private TaskRepository taskRepository;
 
     @Autowired
+    private ProjectRepository projectRepository;
+
+    @Autowired
     private UserRepository userRepository;
 
     @Autowired
@@ -62,6 +67,7 @@ class TaskControllerIntegrationTest extends PostgresIntegrationTest {
                 .build();
 
         taskRepository.deleteAll();
+        projectRepository.deleteAll();
         userRepository.deleteAll();
 
         testUser = new User(
@@ -111,6 +117,126 @@ class TaskControllerIntegrationTest extends PostgresIntegrationTest {
 
         assertThat(createdTask.getUser().getId())
                 .isEqualTo(testUser.getId());
+    }
+
+    @Test
+    void shouldCreateTaskWithProjectThroughRestApi() throws Exception {
+        Project project = createProject(
+                "Integration project",
+                testUser
+        );
+
+        mockMvc.perform(post("/api/tasks")
+                        .header("Authorization", "Bearer " + testUserToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Task with project",
+                                  "description": "Task belongs to project",
+                                  "status": "TODO",
+                                  "priority": "HIGH",
+                                  "projectId": %d
+                                }
+                                """.formatted(project.getId())))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.title")
+                        .value("Task with project"))
+                .andExpect(jsonPath("$.projectId")
+                        .value(project.getId().intValue()));
+
+        Task createdTask = taskRepository.findAll().getFirst();
+
+        assertThat(createdTask.getProject()).isNotNull();
+        assertThat(createdTask.getProject().getId())
+                .isEqualTo(project.getId());
+    }
+
+    @Test
+    void shouldCreateTaskWithoutProjectThroughRestApi() throws Exception {
+        mockMvc.perform(post("/api/tasks")
+                        .header("Authorization", "Bearer " + testUserToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Task without project",
+                                  "description": "Independent task",
+                                  "status": "TODO",
+                                  "priority": "MEDIUM"
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.title")
+                        .value("Task without project"))
+                .andExpect(jsonPath("$.projectId").doesNotExist());
+
+        Task createdTask = taskRepository.findAll().getFirst();
+
+        assertThat(createdTask.getProject()).isNull();
+    }
+
+    @Test
+    void shouldUpdateTaskProjectThroughRestApi() throws Exception {
+        Project firstProject = createProject(
+                "First project",
+                testUser
+        );
+
+        Project secondProject = createProject(
+                "Second project",
+                testUser
+        );
+
+        Task task = createTask(
+                "Task with project",
+                testUser
+        );
+        task.setProject(firstProject);
+        task = taskRepository.saveAndFlush(task);
+
+        mockMvc.perform(put("/api/tasks/" + task.getId())
+                        .header("Authorization", "Bearer " + testUserToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Task with updated project",
+                                  "status": "TODO",
+                                  "priority": "MEDIUM",
+                                  "projectId": %d
+                                }
+                                """.formatted(secondProject.getId())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.projectId")
+                        .value(secondProject.getId().intValue()));
+
+        Task updatedTask = taskRepository.findById(task.getId())
+                .orElseThrow();
+
+        assertThat(updatedTask.getProject()).isNotNull();
+        assertThat(updatedTask.getProject().getId())
+                .isEqualTo(secondProject.getId());
+    }
+
+    @Test
+    void shouldNotAttachTaskToAnotherUsersProjectThroughRestApi() throws Exception {
+        Project anotherUsersProject = createProject(
+                "Private project",
+                anotherUser
+        );
+
+        mockMvc.perform(post("/api/tasks")
+                        .header("Authorization", "Bearer " + testUserToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Task with foreign project",
+                                  "status": "TODO",
+                                  "priority": "MEDIUM",
+                                  "projectId": %d
+                                }
+                                """.formatted(anotherUsersProject.getId())))
+                .andExpect(status().isBadRequest());
+
+        assertThat(taskRepository.count()).isZero();
     }
 
     @Test
@@ -310,6 +436,14 @@ class TaskControllerIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.timestamp").exists());
 
         assertThat(taskRepository.count()).isZero();
+    }
+
+    private Project createProject(String name, User user) {
+        Project project = new Project();
+        project.setName(name);
+        project.setUser(user);
+
+        return projectRepository.saveAndFlush(project);
     }
 
     private Task createTask(String title, User user) {

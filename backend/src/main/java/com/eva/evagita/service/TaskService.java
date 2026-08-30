@@ -15,5 +15,7 @@ public interface TaskService {
 
     Task updateTask(Long id, Task task, User user);
 
+    com.eva.evagita.model.Project getProjectForUser(Long projectId, User user);
+
     void deleteTask(Long id, User user);
 }

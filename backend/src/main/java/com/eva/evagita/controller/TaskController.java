@@ -63,7 +63,7 @@ public class TaskController {
 
         User currentUser = getCurrentUser(authentication);
 
-        Task task = toEntity(request);
+        Task task = toEntity(request, currentUser);
         task.setUser(currentUser);
 
         return toResponse(taskService.createTask(task));
@@ -79,7 +79,8 @@ public class TaskController {
 
         User currentUser = getCurrentUser(authentication);
 
-        Task task = toEntity(request);
+        Task task = toEntity(request, currentUser);
+
         return toResponse(taskService.updateTask(id, task, currentUser));
     }
 
@@ -100,13 +101,23 @@ public class TaskController {
                         new UserNotFoundException(authentication.getName()));
     }
 
-    private Task toEntity(TaskRequest request) {
+    private Task toEntity(TaskRequest request, User user) {
         Task task = new Task();
         task.setTitle(request.getTitle());
         task.setDescription(request.getDescription());
         task.setStatus(request.getStatus());
         task.setPriority(request.getPriority());
         task.setDueDate(request.getDueDate());
+
+        if (request.getProjectId() != null) {
+            task.setProject(
+                    taskService.getProjectForUser(
+                            request.getProjectId(),
+                            user
+                    )
+            );
+        }
+
         return task;
     }
 
@@ -118,8 +129,14 @@ public class TaskController {
         response.setStatus(task.getStatus());
         response.setPriority(task.getPriority());
         response.setDueDate(task.getDueDate());
+
+        if (task.getProject() != null) {
+            response.setProjectId(task.getProject().getId());
+        }
+
         response.setCreatedAt(task.getCreatedAt());
         response.setUpdatedAt(task.getUpdatedAt());
+
         return response;
     }
 }

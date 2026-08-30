@@ -45,6 +45,7 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/users").permitAll()
                         .requestMatchers("/api/users/**").authenticated()
                         .requestMatchers("/api/tasks/**").authenticated()
+                        .requestMatchers("/api/projects/**").authenticated()
                         .anyRequest().permitAll()
                 )
                 .addFilterBefore(

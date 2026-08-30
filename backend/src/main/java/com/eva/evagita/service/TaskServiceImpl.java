@@ -1,9 +1,12 @@
 package com.eva.evagita.service;
 
 import com.eva.evagita.exception.TaskNotFoundException;
+import com.eva.evagita.model.Project;
 import com.eva.evagita.model.Task;
 import com.eva.evagita.model.User;
+import com.eva.evagita.repository.ProjectRepository;
 import com.eva.evagita.repository.TaskRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -12,9 +15,20 @@ import java.util.List;
 public class TaskServiceImpl implements TaskService {
 
     private final TaskRepository taskRepository;
+    private final ProjectRepository projectRepository;
+
+    @Autowired
+    public TaskServiceImpl(
+            TaskRepository taskRepository,
+            ProjectRepository projectRepository
+    ) {
+        this.taskRepository = taskRepository;
+        this.projectRepository = projectRepository;
+    }
 
     public TaskServiceImpl(TaskRepository taskRepository) {
         this.taskRepository = taskRepository;
+        this.projectRepository = null;
     }
 
     @Override
@@ -45,6 +59,7 @@ public class TaskServiceImpl implements TaskService {
         existingTask.setStatus(task.getStatus());
         existingTask.setPriority(task.getPriority());
         existingTask.setDueDate(task.getDueDate());
+        existingTask.setProject(task.getProject());
 
         return taskRepository.save(existingTask);
     }
@@ -53,6 +68,16 @@ public class TaskServiceImpl implements TaskService {
     public void deleteTask(Long id, User user) {
         Task existingTask = getTaskById(id, user);
         taskRepository.delete(existingTask);
+    }
+
+    public Project getProjectForUser(Long projectId, User user) {
+        if (projectId == null) {
+            return null;
+        }
+
+        return projectRepository.findByIdAndUser(projectId, user)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Project not found"));
     }
 
     private void validateTaskTitle(Task task) {

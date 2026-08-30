@@ -33,6 +33,10 @@ public class Task {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id")
+    private Project project;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -116,6 +120,14 @@ public class Task {
 
     public void setUser(User user) {
         this.user = user;
+    }
+
+    public Project getProject() {
+        return project;
+    }
+
+    public void setProject(Project project) {
+        this.project = project;
     }
 
     public LocalDateTime getCreatedAt() {
