@@ -1,5 +1,6 @@
 package com.eva.evagita.service;
 
+import com.eva.evagita.model.Tag;
 import com.eva.evagita.model.Task;
 import com.eva.evagita.model.User;
 
@@ -16,6 +17,12 @@ public interface TaskService {
     Task updateTask(Long id, Task task, User user);
 
     com.eva.evagita.model.Project getProjectForUser(Long projectId, User user);
+
+    void addTagToTask(Long taskId, Long tagId, User user);
+
+    List<Tag> getTaskTags(Long taskId, User user);
+
+    void removeTagFromTask(Long taskId, Long tagId, User user);
 
     void deleteTask(Long id, User user);
 }

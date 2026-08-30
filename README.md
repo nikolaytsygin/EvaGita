@@ -226,7 +226,8 @@ EvaGita — task management platform в стиле современных produc
 - [ ] JWT
 - [ ] User-owned tasks
 - [ ] Projects
-- [ ] Tags
+- [x] Tags
+- [x] Task ↔ Tag relationship
 - [ ] Search
 - [ ] Filtering
 - [ ] Dashboard
@@ -428,19 +429,22 @@ Backend foundation:
 - Error handling;
 - DTO;
 - Request validation;
-- Validation tests.
+- Validation tests;
+- Tag CRUD API;
+- Task ↔ Tag relationship;
+- Tag API validation and security tests.
 
 ### Current test status
 
-**22 tests — 0 failures — 0 errors**
+**130 tests — 0 failures — 0 errors**
 
 ### Current Git status
 
-На момент последнего этапа рабочее дерево было чистым.
+В рабочем дереве находятся изменения, связанные с реализацией Tag API и связи Task ↔ Tag. Изменения ещё не добавлены в индекс.
 
 Последний реализованный этап:
 
-**Task request validation coverage**
+**Tag API and Task ↔ Tag relationship**
 
 ---
 

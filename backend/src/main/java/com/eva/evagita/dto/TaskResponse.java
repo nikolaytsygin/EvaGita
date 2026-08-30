@@ -2,9 +2,11 @@ package com.eva.evagita.dto;
 
 import com.eva.evagita.model.TaskPriority;
 import com.eva.evagita.model.TaskStatus;
+import com.eva.evagita.model.Tag;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Set;
 
 public class TaskResponse {
 
@@ -15,6 +17,7 @@ public class TaskResponse {
     private TaskPriority priority;
     private LocalDate dueDate;
     private Long projectId;
+    private Set<Tag> tags;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -75,6 +78,14 @@ public class TaskResponse {
 
     public void setProjectId(Long projectId) {
         this.projectId = projectId;
+    }
+
+    public Set<Tag> getTags() {
+        return tags;
+    }
+
+    public void setTags(Set<Tag> tags) {
+        this.tags = tags;
     }
 
     public LocalDateTime getCreatedAt() {

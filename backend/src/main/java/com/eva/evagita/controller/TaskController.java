@@ -3,6 +3,7 @@ package com.eva.evagita.controller;
 import com.eva.evagita.dto.TaskRequest;
 import com.eva.evagita.dto.TaskResponse;
 import com.eva.evagita.exception.UserNotFoundException;
+import com.eva.evagita.model.Tag;
 import com.eva.evagita.model.Task;
 import com.eva.evagita.model.User;
 import com.eva.evagita.repository.UserRepository;
@@ -84,6 +85,46 @@ public class TaskController {
         return toResponse(taskService.updateTask(id, task, currentUser));
     }
 
+    @PostMapping("/{taskId}/tags/{tagId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void addTagToTask(
+            @PathVariable Long taskId,
+            @PathVariable Long tagId
+    ) {
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        User currentUser = getCurrentUser(authentication);
+
+        taskService.addTagToTask(taskId, tagId, currentUser);
+    }
+
+    @GetMapping("/{taskId}/tags")
+    public List<Tag> getTaskTags(
+            @PathVariable Long taskId
+    ) {
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        User currentUser = getCurrentUser(authentication);
+
+        return taskService.getTaskTags(taskId, currentUser);
+    }
+
+    @DeleteMapping("/{taskId}/tags/{tagId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void removeTagFromTask(
+            @PathVariable Long taskId,
+            @PathVariable Long tagId
+    ) {
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        User currentUser = getCurrentUser(authentication);
+
+        taskService.removeTagFromTask(taskId, tagId, currentUser);
+    }
+
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteTask(@PathVariable Long id) {
@@ -133,6 +174,8 @@ public class TaskController {
         if (task.getProject() != null) {
             response.setProjectId(task.getProject().getId());
         }
+
+        response.setTags(task.getTags());
 
         response.setCreatedAt(task.getCreatedAt());
         response.setUpdatedAt(task.getUpdatedAt());

@@ -24,6 +24,17 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(TagNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorResponse handleTagNotFound(TagNotFoundException exception) {
+        return new ErrorResponse(
+                HttpStatus.NOT_FOUND.value(),
+                HttpStatus.NOT_FOUND.getReasonPhrase(),
+                exception.getMessage(),
+                LocalDateTime.now()
+        );
+    }
+
     @ExceptionHandler(TaskNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ErrorResponse handleTaskNotFound(TaskNotFoundException exception) {

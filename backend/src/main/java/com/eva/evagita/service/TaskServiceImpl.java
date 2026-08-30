@@ -1,10 +1,13 @@
 package com.eva.evagita.service;
 
+import com.eva.evagita.exception.TagNotFoundException;
 import com.eva.evagita.exception.TaskNotFoundException;
 import com.eva.evagita.model.Project;
+import com.eva.evagita.model.Tag;
 import com.eva.evagita.model.Task;
 import com.eva.evagita.model.User;
 import com.eva.evagita.repository.ProjectRepository;
+import com.eva.evagita.repository.TagRepository;
 import com.eva.evagita.repository.TaskRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -16,19 +19,23 @@ public class TaskServiceImpl implements TaskService {
 
     private final TaskRepository taskRepository;
     private final ProjectRepository projectRepository;
+    private final TagRepository tagRepository;
 
     @Autowired
     public TaskServiceImpl(
             TaskRepository taskRepository,
-            ProjectRepository projectRepository
+            ProjectRepository projectRepository,
+            TagRepository tagRepository
     ) {
         this.taskRepository = taskRepository;
         this.projectRepository = projectRepository;
+        this.tagRepository = tagRepository;
     }
 
     public TaskServiceImpl(TaskRepository taskRepository) {
         this.taskRepository = taskRepository;
         this.projectRepository = null;
+        this.tagRepository = null;
     }
 
     @Override
@@ -62,6 +69,44 @@ public class TaskServiceImpl implements TaskService {
         existingTask.setProject(task.getProject());
 
         return taskRepository.save(existingTask);
+    }
+
+    @Override
+    public void addTagToTask(Long taskId, Long tagId, User user) {
+        Task task = getTaskById(taskId, user);
+
+        Tag tag = tagRepository.findById(tagId)
+                .orElseThrow(() ->
+                        new TagNotFoundException(
+                                "Tag not found with id: " + tagId
+                        ));
+
+        task.getTags().add(tag);
+        taskRepository.save(task);
+    }
+
+    @Override
+    public List<Tag> getTaskTags(Long taskId, User user) {
+        Task task = getTaskById(taskId, user);
+
+        return List.copyOf(task.getTags());
+    }
+
+    @Override
+    public void removeTagFromTask(Long taskId, Long tagId, User user) {
+        Task task = getTaskById(taskId, user);
+
+        boolean removed = task.getTags()
+                .removeIf(tag -> tag.getId().equals(tagId));
+
+        if (!removed) {
+            throw new TagNotFoundException(
+                    "Tag with id " + tagId +
+                    " is not attached to task " + taskId
+            );
+        }
+
+        taskRepository.save(task);
     }
 
     @Override
