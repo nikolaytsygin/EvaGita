@@ -2,6 +2,8 @@ package com.eva.evagita.service;
 
 import com.eva.evagita.model.Tag;
 import com.eva.evagita.model.Task;
+import com.eva.evagita.model.TaskStatus;
+import com.eva.evagita.model.TaskPriority;
 import com.eva.evagita.model.User;
 
 import java.time.LocalDate;
@@ -13,7 +15,25 @@ public interface TaskService {
 
     List<Task> getAllTasks(User user);
 
+    List<Task> getTasksByProject(Long projectId, User user);
+
+    List<Task> getTasksByTag(Long tagId, User user);
+
+    List<Task> getTasksByStatus(TaskStatus status, User user);
+
+    List<Task> getTasksByPriority(TaskPriority priority, User user);
+
     List<Task> getTasksByDueDate(
+            LocalDate dueDateFrom,
+            LocalDate dueDateTo,
+            User user
+    );
+
+    List<Task> getTasksByFilters(
+            TaskStatus status,
+            TaskPriority priority,
+            Long projectId,
+            Long tagId,
             LocalDate dueDateFrom,
             LocalDate dueDateTo,
             User user

@@ -5,10 +5,13 @@ import com.eva.evagita.exception.TaskNotFoundException;
 import com.eva.evagita.model.Project;
 import com.eva.evagita.model.Tag;
 import com.eva.evagita.model.Task;
+import com.eva.evagita.model.TaskStatus;
+import com.eva.evagita.model.TaskPriority;
 import com.eva.evagita.model.User;
 import com.eva.evagita.repository.ProjectRepository;
 import com.eva.evagita.repository.TagRepository;
 import com.eva.evagita.repository.TaskRepository;
+import com.eva.evagita.specification.TaskSpecification;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -51,6 +54,26 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
+    public List<Task> getTasksByProject(Long projectId, User user) {
+        return taskRepository.findAllByUserAndProject_Id(user, projectId);
+    }
+
+    @Override
+    public List<Task> getTasksByTag(Long tagId, User user) {
+        return taskRepository.findAllByUserAndTags_Id(user, tagId);
+    }
+
+    @Override
+    public List<Task> getTasksByStatus(TaskStatus status, User user) {
+        return taskRepository.findAllByUserAndStatus(user, status);
+    }
+
+    @Override
+    public List<Task> getTasksByPriority(TaskPriority priority, User user) {
+        return taskRepository.findAllByUserAndPriority(user, priority);
+    }
+
+    @Override
     public List<Task> getTasksByDueDate(
             LocalDate dueDateFrom,
             LocalDate dueDateTo,
@@ -79,6 +102,29 @@ public class TaskServiceImpl implements TaskService {
         }
 
         return taskRepository.findAllByUser(user);
+    }
+
+    @Override
+    public List<Task> getTasksByFilters(
+            TaskStatus status,
+            TaskPriority priority,
+            Long projectId,
+            Long tagId,
+            LocalDate dueDateFrom,
+            LocalDate dueDateTo,
+            User user
+    ) {
+        return taskRepository.findAll(
+                TaskSpecification.byFilters(
+                        status,
+                        priority,
+                        projectId,
+                        tagId,
+                        dueDateFrom,
+                        dueDateTo,
+                        user
+                )
+        );
     }
 
     @Override

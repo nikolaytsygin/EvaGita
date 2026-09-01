@@ -2,11 +2,13 @@ package com.eva.evagita.controller;
 
 import com.eva.evagita.PostgresIntegrationTest;
 import com.eva.evagita.model.Project;
+import com.eva.evagita.model.Tag;
 import com.eva.evagita.model.Task;
 import com.eva.evagita.model.TaskPriority;
 import com.eva.evagita.model.TaskStatus;
 import com.eva.evagita.model.User;
 import com.eva.evagita.repository.ProjectRepository;
+import com.eva.evagita.repository.TagRepository;
 import com.eva.evagita.repository.TaskRepository;
 import com.eva.evagita.repository.UserRepository;
 import com.eva.evagita.security.JwtService;
@@ -20,6 +22,8 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.transaction.annotation.Transactional;
 
+
+import java.time.LocalDate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
@@ -42,6 +46,9 @@ class TaskControllerIntegrationTest extends PostgresIntegrationTest {
 
     @Autowired
     private ProjectRepository projectRepository;
+
+    @Autowired
+    private TagRepository tagRepository;
 
     @Autowired
     private UserRepository userRepository;
@@ -68,6 +75,7 @@ class TaskControllerIntegrationTest extends PostgresIntegrationTest {
 
         taskRepository.deleteAll();
         projectRepository.deleteAll();
+        tagRepository.deleteAll();
         userRepository.deleteAll();
 
         testUser = new User(
@@ -273,6 +281,137 @@ class TaskControllerIntegrationTest extends PostgresIntegrationTest {
                                 "First user task",
                                 "Second user task"
                         )));
+    }
+
+    @Test
+    void shouldFilterTasksByStatusThroughRestApi() throws Exception {
+        Task todoTask = createTask(
+                "TODO task",
+                testUser
+        );
+
+        Task inProgressTask = createTask(
+                "IN_PROGRESS task",
+                testUser
+        );
+        inProgressTask.setStatus(TaskStatus.IN_PROGRESS);
+        inProgressTask = taskRepository.saveAndFlush(inProgressTask);
+
+        Task doneTask = createTask(
+                "DONE task",
+                testUser
+        );
+        doneTask.setStatus(TaskStatus.DONE);
+        doneTask = taskRepository.saveAndFlush(doneTask);
+
+        createTask(
+                "Another user TODO task",
+                anotherUser
+        );
+
+        mockMvc.perform(get("/api/tasks")
+                        .param("status", "TODO")
+                        .header(
+                                "Authorization",
+                                "Bearer " + testUserToken
+                        ))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id")
+                        .value(todoTask.getId()))
+                .andExpect(jsonPath("$[0].status")
+                        .value("TODO"));
+
+        mockMvc.perform(get("/api/tasks")
+                        .param("status", "IN_PROGRESS")
+                        .header(
+                                "Authorization",
+                                "Bearer " + testUserToken
+                        ))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id")
+                        .value(inProgressTask.getId()))
+                .andExpect(jsonPath("$[0].status")
+                        .value("IN_PROGRESS"));
+
+        mockMvc.perform(get("/api/tasks")
+                        .param("status", "DONE")
+                        .header(
+                                "Authorization",
+                                "Bearer " + testUserToken
+                        ))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id")
+                        .value(doneTask.getId()))
+                .andExpect(jsonPath("$[0].status")
+                        .value("DONE"));
+    }
+
+    @Test
+    void shouldReturn400WhenFilteringTasksByInvalidStatus() throws Exception {
+        mockMvc.perform(get("/api/tasks")
+                        .param("status", "INVALID")
+                        .header(
+                                "Authorization",
+                                "Bearer " + testUserToken
+                        ))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.message")
+                        .value("Invalid value for parameter 'status'"))
+                .andExpect(jsonPath("$.timestamp").exists());
+    }
+
+    @Test
+    void shouldFilterTasksByTagThroughRestApi() throws Exception {
+        Tag backendTag = new Tag();
+        backendTag.setName("backend");
+        backendTag = tagRepository.saveAndFlush(backendTag);
+
+        Tag javaTag = new Tag();
+        javaTag.setName("java");
+        javaTag = tagRepository.saveAndFlush(javaTag);
+
+        Task backendTask = createTask(
+                "Backend task",
+                testUser
+        );
+        backendTask.getTags().add(backendTag);
+        backendTask = taskRepository.saveAndFlush(backendTask);
+
+        Task javaTask = createTask(
+                "Java task",
+                testUser
+        );
+        javaTask.getTags().add(javaTag);
+        javaTask = taskRepository.saveAndFlush(javaTask);
+
+        Task anotherUsersBackendTask = createTask(
+                "Another user backend task",
+                anotherUser
+        );
+        anotherUsersBackendTask.getTags().add(backendTag);
+        taskRepository.saveAndFlush(anotherUsersBackendTask);
+
+        mockMvc.perform(get("/api/tasks")
+                        .param("tagId", backendTag.getId().toString())
+                        .header(
+                                "Authorization",
+                                "Bearer " + testUserToken
+                        ))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id")
+                        .value(backendTask.getId()))
+                .andExpect(jsonPath("$[0].title")
+                        .value("Backend task"))
+                .andExpect(jsonPath("$[0].tags[0].id")
+                        .value(backendTag.getId().intValue()))
+                .andExpect(jsonPath("$[0].tags[0].name")
+                        .value("backend"));
     }
 
     @Test

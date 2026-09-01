@@ -5,6 +5,8 @@ import com.eva.evagita.dto.TaskResponse;
 import com.eva.evagita.exception.UserNotFoundException;
 import com.eva.evagita.model.Tag;
 import com.eva.evagita.model.Task;
+import com.eva.evagita.model.TaskStatus;
+import com.eva.evagita.model.TaskPriority;
 import com.eva.evagita.model.User;
 import com.eva.evagita.repository.UserRepository;
 import com.eva.evagita.service.TaskService;
@@ -34,6 +36,10 @@ public class TaskController {
 
     @GetMapping
     public List<TaskResponse> getAllTasks(
+            @RequestParam(required = false) TaskStatus status,
+            @RequestParam(required = false) TaskPriority priority,
+            @RequestParam(required = false) Long projectId,
+            @RequestParam(required = false) Long tagId,
             @RequestParam(required = false) LocalDate dueDateFrom,
             @RequestParam(required = false) LocalDate dueDateTo
     ) {
@@ -44,8 +50,18 @@ public class TaskController {
 
         List<Task> tasks;
 
-        if (dueDateFrom != null || dueDateTo != null) {
-            tasks = taskService.getTasksByDueDate(
+        if (status != null
+                || priority != null
+                || projectId != null
+                || tagId != null
+                || dueDateFrom != null
+                || dueDateTo != null) {
+
+            tasks = taskService.getTasksByFilters(
+                    status,
+                    priority,
+                    projectId,
+                    tagId,
                     dueDateFrom,
                     dueDateTo,
                     currentUser
