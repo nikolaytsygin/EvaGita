@@ -279,6 +279,56 @@ class TaskRepositoryTest extends PostgresIntegrationTest {
     }
 
     @Test
+    void shouldCountTasksByStatusForSpecificUser() {
+        Task todoTask = new Task();
+        todoTask.setTitle("Todo task");
+        todoTask.setStatus(TaskStatus.TODO);
+        todoTask.setUser(testUser);
+
+        Task inProgressTask = new Task();
+        inProgressTask.setTitle("In progress task");
+        inProgressTask.setStatus(TaskStatus.IN_PROGRESS);
+        inProgressTask.setUser(testUser);
+
+        Task doneTask = new Task();
+        doneTask.setTitle("Done task");
+        doneTask.setStatus(TaskStatus.DONE);
+        doneTask.setUser(testUser);
+
+        Task anotherUsersDoneTask = new Task();
+        anotherUsersDoneTask.setTitle("Another user done task");
+        anotherUsersDoneTask.setStatus(TaskStatus.DONE);
+        anotherUsersDoneTask.setUser(anotherUser);
+
+        taskRepository.saveAll(List.of(
+                todoTask,
+                inProgressTask,
+                doneTask,
+                anotherUsersDoneTask
+        ));
+
+        assertThat(taskRepository.countByUserAndStatus(
+                testUser,
+                TaskStatus.TODO
+        )).isEqualTo(1);
+
+        assertThat(taskRepository.countByUserAndStatus(
+                testUser,
+                TaskStatus.IN_PROGRESS
+        )).isEqualTo(1);
+
+        assertThat(taskRepository.countByUserAndStatus(
+                testUser,
+                TaskStatus.DONE
+        )).isEqualTo(1);
+
+        assertThat(taskRepository.countByUserAndStatus(
+                anotherUser,
+                TaskStatus.DONE
+        )).isEqualTo(1);
+    }
+
+    @Test
     void shouldUpdateTask() {
         Task task = new Task();
         task.setTitle("Original title");

@@ -230,7 +230,7 @@ EvaGita — task management platform в стиле современных produc
 - [x] Task ↔ Tag relationship
 - [ ] Search
 - [ ] Filtering
-- [ ] Dashboard
+- [x] Dashboard
 - [ ] Notifications
 - [ ] Frontend
 
@@ -432,19 +432,59 @@ Backend foundation:
 - Validation tests;
 - Tag CRUD API;
 - Task ↔ Tag relationship;
-- Tag API validation and security tests.
+- Tag API validation and security tests;
+- Task filtering by project;
+- Dashboard DTO;
+- Task count statistics;
+- Task status statistics;
+- Task priority statistics;
+- Overdue task statistics;
+- Dashboard Service;
+- Dashboard REST API.
 
 ### Current test status
 
-**130 tests — 0 failures — 0 errors**
+**158 tests — 0 failures — 0 errors — 0 skipped**
+
+### Current Dashboard API
+
+Dashboard endpoint:
+
+`GET /api/dashboard`
+
+The endpoint returns task statistics for the authenticated user:
+
+- total tasks;
+- TODO tasks;
+- IN_PROGRESS tasks;
+- DONE tasks;
+- LOW priority tasks;
+- MEDIUM priority tasks;
+- HIGH priority tasks;
+- overdue tasks.
+
+Example response:
+
+```json
+{
+  "totalTasks": 10,
+  "todoTasks": 4,
+  "inProgressTasks": 3,
+  "doneTasks": 3,
+  "lowPriorityTasks": 2,
+  "mediumPriorityTasks": 5,
+  "highPriorityTasks": 3,
+  "overdueTasks": 1
+}
+```
 
 ### Current Git status
 
-В рабочем дереве находятся изменения, связанные с реализацией Tag API и связи Task ↔ Tag. Изменения ещё не добавлены в индекс.
+Рабочее дерево содержит изменения, связанные с реализацией Task API, Tag API, фильтрации задач и Dashboard. Изменения будут зафиксированы отдельным Git commit после завершения текущего этапа.
 
 Последний реализованный этап:
 
-**Tag API and Task ↔ Tag relationship**
+**Dashboard Controller / API**
 
 ---
 

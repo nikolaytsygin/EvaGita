@@ -8,6 +8,7 @@ import com.eva.evagita.model.TaskPriority;
 import com.eva.evagita.model.TaskStatus;
 import com.eva.evagita.model.User;
 import com.eva.evagita.repository.ProjectRepository;
+import com.eva.evagita.repository.NotificationRepository;
 import com.eva.evagita.repository.TagRepository;
 import com.eva.evagita.repository.TaskRepository;
 import com.eva.evagita.repository.UserRepository;
@@ -48,6 +49,9 @@ class TaskControllerIntegrationTest extends PostgresIntegrationTest {
     private ProjectRepository projectRepository;
 
     @Autowired
+    private NotificationRepository notificationRepository;
+
+    @Autowired
     private TagRepository tagRepository;
 
     @Autowired
@@ -76,6 +80,7 @@ class TaskControllerIntegrationTest extends PostgresIntegrationTest {
         taskRepository.deleteAll();
         projectRepository.deleteAll();
         tagRepository.deleteAll();
+        notificationRepository.deleteAll();
         userRepository.deleteAll();
 
         testUser = new User(

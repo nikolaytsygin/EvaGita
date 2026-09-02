@@ -1,5 +1,8 @@
 package com.eva.evagita.service;
 
+import com.eva.evagita.event.TaskEvent;
+import com.eva.evagita.messaging.TaskEventProducer;
+import com.eva.evagita.model.NotificationType;
 import com.eva.evagita.exception.TaskNotFoundException;
 import com.eva.evagita.model.Task;
 import com.eva.evagita.model.TaskPriority;
@@ -25,13 +28,21 @@ class TaskServiceImplTest {
     @Mock
     private TaskRepository taskRepository;
 
+    @Mock
+    private TaskEventProducer taskEventProducer;
+
     private TaskServiceImpl taskService;
 
     private User testUser;
 
     @BeforeEach
     void setUp() {
-        taskService = new TaskServiceImpl(taskRepository);
+        taskService = new TaskServiceImpl(
+                taskRepository,
+                null,
+                null,
+                taskEventProducer
+        );
 
         testUser = new User(
                 "test-user",
@@ -52,6 +63,91 @@ class TaskServiceImplTest {
 
         assertSame(task, result);
         verify(taskRepository).save(task);
+        verify(taskEventProducer).send(new TaskEvent(
+                NotificationType.TASK_CREATED,
+                testUser.getId(),
+                task.getId(),
+                task.getTitle()
+        ));
+    }
+
+    @Test
+    void createTask_shouldPublishTaskCreatedEvent() {
+        Task task = new Task();
+        task.setId(1L);
+        task.setTitle("Created task");
+        task.setUser(testUser);
+
+        when(taskRepository.save(task)).thenReturn(task);
+
+        taskService.createTask(task);
+
+        verify(taskEventProducer).send(new TaskEvent(
+                NotificationType.TASK_CREATED,
+                testUser.getId(),
+                1L,
+                "Created task"
+        ));
+    }
+
+    @Test
+    void updateTask_shouldPublishTaskUpdatedEventWhenStatusIsNotDone() {
+        Long id = 1L;
+
+        Task existingTask = new Task();
+        existingTask.setId(id);
+        existingTask.setTitle("Old title");
+        existingTask.setStatus(TaskStatus.TODO);
+        existingTask.setUser(testUser);
+
+        Task updatedTask = new Task();
+        updatedTask.setTitle("Updated title");
+        updatedTask.setStatus(TaskStatus.IN_PROGRESS);
+        updatedTask.setPriority(TaskPriority.HIGH);
+
+        when(taskRepository.findByIdAndUser(id, testUser))
+                .thenReturn(Optional.of(existingTask));
+        when(taskRepository.save(existingTask))
+                .thenReturn(existingTask);
+
+        taskService.updateTask(id, updatedTask, testUser);
+
+        verify(taskEventProducer).send(new TaskEvent(
+                NotificationType.TASK_UPDATED,
+                testUser.getId(),
+                id,
+                "Updated title"
+        ));
+    }
+
+    @Test
+    void updateTask_shouldPublishTaskCompletedEventWhenStatusIsDone() {
+        Long id = 2L;
+
+        Task existingTask = new Task();
+        existingTask.setId(id);
+        existingTask.setTitle("Old title");
+        existingTask.setStatus(TaskStatus.TODO);
+        existingTask.setUser(testUser);
+
+        Task updatedTask = new Task();
+        updatedTask.setTitle("Completed task");
+        updatedTask.setStatus(TaskStatus.DONE);
+        updatedTask.setPriority(TaskPriority.HIGH);
+
+        when(taskRepository.findByIdAndUser(id, testUser))
+                .thenReturn(Optional.of(existingTask));
+        when(taskRepository.save(existingTask))
+                .thenReturn(existingTask);
+
+        taskService.updateTask(id, updatedTask, testUser);
+
+        verify(taskEventProducer).send(new TaskEvent(
+                NotificationType.TASK_COMPLETED,
+                testUser.getId(),
+                id,
+                "Completed task"
+        ));
     }
 
     @Test

@@ -36,3 +36,6 @@ frontend/dist/
 # Temporary files
 *.tmp
 *.swp
+
+# Local test credentials
+users-credentials.txt

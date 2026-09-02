@@ -1,4 +1,19 @@
 services:
+  rabbitmq:
+    image: rabbitmq:4-management
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: evagita
+      RABBITMQ_DEFAULT_PASS: evagita_dev
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   postgres:
     image: postgres:17
     restart: unless-stopped
@@ -26,10 +41,16 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/evagita
       SPRING_DATASOURCE_USERNAME: evagita
       SPRING_DATASOURCE_PASSWORD: evagita_dev
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: evagita
+      RABBITMQ_PASSWORD: evagita_dev
     ports:
-      - "${BACKEND_PORT:-18080}:8080"
+      - "${BACKEND_PORT:-8081}:8081"
     depends_on:
       postgres:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
 
 volumes:

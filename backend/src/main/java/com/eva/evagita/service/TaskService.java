@@ -15,6 +15,14 @@ public interface TaskService {
 
     List<Task> getAllTasks(User user);
 
+    long countTasks(User user);
+
+    long countTasksByStatus(TaskStatus status, User user);
+
+    long countTasksByPriority(TaskPriority priority, User user);
+
+    long countOverdueTasks(User user);
+
     List<Task> getTasksByProject(Long projectId, User user);
 
     List<Task> getTasksByTag(Long tagId, User user);

@@ -1,5 +1,7 @@
 package com.eva.evagita.service;
 
+import com.eva.evagita.event.TaskEvent;
+import com.eva.evagita.messaging.TaskEventProducer;
 import com.eva.evagita.exception.TagNotFoundException;
 import com.eva.evagita.exception.TaskNotFoundException;
 import com.eva.evagita.model.Project;
@@ -24,33 +26,72 @@ public class TaskServiceImpl implements TaskService {
     private final TaskRepository taskRepository;
     private final ProjectRepository projectRepository;
     private final TagRepository tagRepository;
+    private final TaskEventProducer taskEventProducer;
 
     @Autowired
     public TaskServiceImpl(
             TaskRepository taskRepository,
             ProjectRepository projectRepository,
-            TagRepository tagRepository
+            TagRepository tagRepository,
+            TaskEventProducer taskEventProducer
     ) {
         this.taskRepository = taskRepository;
         this.projectRepository = projectRepository;
         this.tagRepository = tagRepository;
+        this.taskEventProducer = taskEventProducer;
     }
 
     public TaskServiceImpl(TaskRepository taskRepository) {
         this.taskRepository = taskRepository;
         this.projectRepository = null;
         this.tagRepository = null;
+        this.taskEventProducer = null;
     }
 
     @Override
     public Task createTask(Task task) {
         validateTaskTitle(task);
-        return taskRepository.save(task);
+        Task savedTask = taskRepository.save(task);
+
+        taskEventProducer.send(
+                new TaskEvent(
+                        com.eva.evagita.model.NotificationType.TASK_CREATED,
+                        savedTask.getUser().getId(),
+                        savedTask.getId(),
+                        savedTask.getTitle()
+                )
+        );
+
+        return savedTask;
     }
 
     @Override
     public List<Task> getAllTasks(User user) {
         return taskRepository.findAllByUser(user);
+    }
+
+    @Override
+    public long countTasks(User user) {
+        return taskRepository.countByUser(user);
+    }
+
+    @Override
+    public long countTasksByStatus(TaskStatus status, User user) {
+        return taskRepository.countByUserAndStatus(user, status);
+    }
+
+    @Override
+    public long countTasksByPriority(TaskPriority priority, User user) {
+        return taskRepository.countByUserAndPriority(user, priority);
+    }
+
+    @Override
+    public long countOverdueTasks(User user) {
+        return taskRepository.countByUserAndDueDateBeforeAndStatusNot(
+                user,
+                LocalDate.now(),
+                TaskStatus.DONE
+        );
     }
 
     @Override
@@ -166,7 +207,20 @@ public class TaskServiceImpl implements TaskService {
         existingTask.setDueDate(task.getDueDate());
         existingTask.setProject(task.getProject());
 
-        return taskRepository.save(existingTask);
+        Task savedTask = taskRepository.save(existingTask);
+
+        taskEventProducer.send(
+                new TaskEvent(
+                        savedTask.getStatus() == TaskStatus.DONE
+                                ? com.eva.evagita.model.NotificationType.TASK_COMPLETED
+                                : com.eva.evagita.model.NotificationType.TASK_UPDATED,
+                        savedTask.getUser().getId(),
+                        savedTask.getId(),
+                        savedTask.getTitle()
+                )
+        );
+
+        return savedTask;
     }
 
     @Override

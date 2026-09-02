@@ -56,4 +56,22 @@ public interface TaskRepository extends JpaRepository<Task, Long>, JpaSpecificat
 
     @EntityGraph(attributePaths = "tags")
     Optional<Task> findByIdAndUser(Long id, User user);
+
+    long countByUser(User user);
+
+    long countByUserAndStatus(User user, TaskStatus status);
+
+    long countByUserAndPriority(User user, TaskPriority priority);
+
+    long countByUserAndDueDateBeforeAndStatusNot(
+            User user,
+            LocalDate dueDate,
+            TaskStatus status
+    );
+
+    @EntityGraph(attributePaths = {"tags", "project"})
+    List<Task> findAllByDueDateBeforeAndStatusNot(
+            LocalDate dueDate,
+            TaskStatus status
+    );
 }

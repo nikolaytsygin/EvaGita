@@ -2,6 +2,7 @@ package com.eva.evagita.controller;
 
 import com.eva.evagita.dto.TaskRequest;
 import com.eva.evagita.dto.TaskResponse;
+import com.eva.evagita.dto.TaskStatusStatisticsResponse;
 import com.eva.evagita.exception.UserNotFoundException;
 import com.eva.evagita.model.Tag;
 import com.eva.evagita.model.Task;
@@ -103,6 +104,23 @@ public class TaskController {
                 .stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    @GetMapping("/statistics/status")
+    public TaskStatusStatisticsResponse getTaskStatusStatistics() {
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        User currentUser = getCurrentUser(authentication);
+
+        return new TaskStatusStatisticsResponse(
+                taskService.countTasksByStatus(TaskStatus.TODO, currentUser),
+                taskService.countTasksByStatus(
+                        TaskStatus.IN_PROGRESS,
+                        currentUser
+                ),
+                taskService.countTasksByStatus(TaskStatus.DONE, currentUser)
+        );
     }
 
     @GetMapping("/{id}")
