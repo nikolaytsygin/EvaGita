@@ -73,3 +73,44 @@ export default defineConfig([
 ])
 
 ```
+
+## Future UI/UX Roadmap
+
+### Calendar
+
+Add a calendar as a persistent sidebar on the relevant application pages.
+
+Tasks that have a `dueDate` must be displayed on the corresponding calendar date. The calendar should allow the user to navigate dates and quickly see tasks planned for a selected day.
+
+### Daily Notes
+
+Add a second sidebar containing three equal-sized note sections:
+
+- **Я вчера** — notes for yesterday (`today - 1 day`)
+- **Я сегодня** — notes for today
+- **Я завтра** — notes for tomorrow (`today + 1 day`)
+
+The sections are relative to the current calendar date, not permanent note fields.
+
+For example, on September 2:
+
+- Я вчера → September 1
+- Я сегодня → September 2
+- Я завтра → September 3
+
+On September 3 the same stored notes automatically appear as:
+
+- Я вчера → September 2
+- Я сегодня → September 3
+- Я завтра → September 4
+
+Daily notes should therefore be stored by a specific date and user, so that their position in the three sections changes automatically as the date changes.
+
+### Planned Authentication Improvements
+
+Add OAuth login options for:
+
+- Google
+- Yandex
+
+OAuth integration should be implemented after the production environment is configured, so that production callback URLs, HTTPS, user linking and JWT authentication can be designed correctly.
