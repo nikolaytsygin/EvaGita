@@ -57,6 +57,12 @@ public interface TaskRepository extends JpaRepository<Task, Long>, JpaSpecificat
     @EntityGraph(attributePaths = "tags")
     Optional<Task> findByIdAndUser(Long id, User user);
 
+    @Override
+    @EntityGraph(attributePaths = {"tags", "project"})
+    List<Task> findAll(
+            org.springframework.data.jpa.domain.Specification<Task> specification
+    );
+
     long countByUser(User user);
 
     long countByUserAndStatus(User user, TaskStatus status);
