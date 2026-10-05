@@ -23,12 +23,16 @@ class TaskRepositoryTest extends PostgresIntegrationTest {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private NotificationRepository notificationRepository;
+
     private User testUser;
 
     private User anotherUser;
 
     @BeforeEach
     void setUp() {
+        notificationRepository.deleteAll();
         taskRepository.deleteAll();
         userRepository.deleteAll();
 

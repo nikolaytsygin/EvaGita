@@ -2,6 +2,7 @@ package com.eva.evagita.service.impl;
 
 import com.eva.evagita.exception.TagNotFoundException;
 import com.eva.evagita.model.Tag;
+import com.eva.evagita.model.User;
 import com.eva.evagita.repository.TagRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,39 +24,50 @@ class TagServiceImplTest {
 
     private TagServiceImpl tagService;
 
+    private User user1;
+    private User user2;
+
     @BeforeEach
     void setUp() {
         tagService = new TagServiceImpl(tagRepository);
+
+        user1 = new User();
+        user1.setUsername("user1");
+
+        user2 = new User();
+        user2.setUsername("user2");
     }
 
     @Test
-    void createTag_shouldSaveAndReturnTag() {
+    void createTag_shouldSaveAndReturnTagForUser() {
         Tag tag = new Tag();
         tag.setName("backend");
 
-        when(tagRepository.existsByName("backend"))
+        when(tagRepository.existsByNameAndUser("backend", user1))
                 .thenReturn(false);
         when(tagRepository.save(tag))
                 .thenReturn(tag);
 
-        Tag result = tagService.createTag(tag);
+        Tag result = tagService.createTag(tag, user1);
 
         assertSame(tag, result);
-        verify(tagRepository).existsByName("backend");
+        assertSame(user1, tag.getUser());
+
+        verify(tagRepository).existsByNameAndUser("backend", user1);
         verify(tagRepository).save(tag);
     }
 
     @Test
-    void createTag_shouldThrowWhenTagNameAlreadyExists() {
+    void createTag_shouldThrowWhenTagNameAlreadyExistsForSameUser() {
         Tag tag = new Tag();
         tag.setName("backend");
 
-        when(tagRepository.existsByName("backend"))
+        when(tagRepository.existsByNameAndUser("backend", user1))
                 .thenReturn(true);
 
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
-                () -> tagService.createTag(tag)
+                () -> tagService.createTag(tag, user1)
         );
 
         assertEquals(
@@ -63,56 +75,101 @@ class TagServiceImplTest {
                 exception.getMessage()
         );
 
-        verify(tagRepository).existsByName("backend");
+        verify(tagRepository).existsByNameAndUser("backend", user1);
         verify(tagRepository, never()).save(any(Tag.class));
     }
 
     @Test
-    void getAllTags_shouldReturnAllTags() {
-        Tag firstTag = new Tag();
-        firstTag.setName("backend");
+    void createTag_shouldAllowSameNameForDifferentUsers() {
+        Tag tag1 = new Tag();
+        tag1.setName("backend");
 
-        Tag secondTag = new Tag();
-        secondTag.setName("frontend");
+        Tag tag2 = new Tag();
+        tag2.setName("backend");
 
-        List<Tag> tags = List.of(firstTag, secondTag);
+        when(tagRepository.existsByNameAndUser("backend", user1))
+                .thenReturn(false);
 
-        when(tagRepository.findAll()).thenReturn(tags);
+        when(tagRepository.existsByNameAndUser("backend", user2))
+                .thenReturn(false);
 
-        List<Tag> result = tagService.getAllTags();
+        when(tagRepository.save(tag1))
+                .thenReturn(tag1);
 
-        assertEquals(2, result.size());
-        assertEquals(tags, result);
-        verify(tagRepository).findAll();
+        when(tagRepository.save(tag2))
+                .thenReturn(tag2);
+
+        Tag result1 = tagService.createTag(tag1, user1);
+        Tag result2 = tagService.createTag(tag2, user2);
+
+        assertSame(tag1, result1);
+        assertSame(tag2, result2);
+
+        assertSame(user1, tag1.getUser());
+        assertSame(user2, tag2.getUser());
+
+        verify(tagRepository)
+                .existsByNameAndUser("backend", user1);
+
+        verify(tagRepository)
+                .existsByNameAndUser("backend", user2);
+
+        verify(tagRepository).save(tag1);
+        verify(tagRepository).save(tag2);
     }
 
     @Test
-    void getTagById_shouldReturnTagWhenExists() {
+    void getAllTags_shouldReturnOnlyTagsForUser() {
+        Tag firstTag = new Tag();
+        firstTag.setName("backend");
+        firstTag.setUser(user1);
+
+        Tag secondTag = new Tag();
+        secondTag.setName("frontend");
+        secondTag.setUser(user1);
+
+        List<Tag> tags = List.of(firstTag, secondTag);
+
+        when(tagRepository.findAllByUser(user1))
+                .thenReturn(tags);
+
+        List<Tag> result = tagService.getAllTags(user1);
+
+        assertEquals(2, result.size());
+        assertEquals(tags, result);
+
+        verify(tagRepository).findAllByUser(user1);
+    }
+
+    @Test
+    void getTagById_shouldReturnTagWhenBelongsToUser() {
         Long id = 1L;
 
         Tag tag = new Tag();
         tag.setId(id);
         tag.setName("backend");
+        tag.setUser(user1);
 
-        when(tagRepository.findById(id))
+        when(tagRepository.findByIdAndUser(id, user1))
                 .thenReturn(Optional.of(tag));
 
-        Tag result = tagService.getTagById(id);
+        Tag result = tagService.getTagById(id, user1);
 
         assertSame(tag, result);
-        verify(tagRepository).findById(id);
+
+        verify(tagRepository).findByIdAndUser(id, user1);
     }
 
     @Test
-    void getTagById_shouldThrowWhenTagDoesNotExist() {
+    void getTagById_shouldThrowWhenTagDoesNotBelongToUser() {
         Long id = 999L;
 
-        when(tagRepository.findById(id))
+        when(tagRepository.findByIdAndUser(id, user1))
                 .thenReturn(Optional.empty());
 
         TagNotFoundException exception = assertThrows(
                 TagNotFoundException.class,
-                () -> tagService.getTagById(id)
+                () -> tagService.getTagById(id, user1)
         );
 
         assertEquals(
@@ -120,31 +177,34 @@ class TagServiceImplTest {
                 exception.getMessage()
         );
 
-        verify(tagRepository).findById(id);
+        verify(tagRepository).findByIdAndUser(id, user1);
     }
 
     @Test
-    void getTagByName_shouldReturnTagWhenExists() {
+    void getTagByName_shouldReturnTagWhenBelongsToUser() {
         Tag tag = new Tag();
         tag.setName("backend");
+        tag.setUser(user1);
 
-        when(tagRepository.findByName("backend"))
+        when(tagRepository.findByNameAndUser("backend", user1))
                 .thenReturn(Optional.of(tag));
 
-        Tag result = tagService.getTagByName("backend");
+        Tag result = tagService.getTagByName("backend", user1);
 
         assertSame(tag, result);
-        verify(tagRepository).findByName("backend");
+
+        verify(tagRepository)
+                .findByNameAndUser("backend", user1);
     }
 
     @Test
-    void getTagByName_shouldThrowWhenTagDoesNotExist() {
-        when(tagRepository.findByName("unknown"))
+    void getTagByName_shouldThrowWhenTagDoesNotBelongToUser() {
+        when(tagRepository.findByNameAndUser("unknown", user1))
                 .thenReturn(Optional.empty());
 
         TagNotFoundException exception = assertThrows(
                 TagNotFoundException.class,
-                () -> tagService.getTagByName("unknown")
+                () -> tagService.getTagByName("unknown", user1)
         );
 
         assertEquals(
@@ -152,35 +212,48 @@ class TagServiceImplTest {
                 exception.getMessage()
         );
 
-        verify(tagRepository).findByName("unknown");
+        verify(tagRepository)
+                .findByNameAndUser("unknown", user1);
     }
 
     @Test
-    void updateTag_shouldUpdateNameAndSaveTag() {
+    void updateTag_shouldUpdateNameAndSaveTagForUser() {
         Long id = 1L;
 
         Tag existingTag = new Tag();
         existingTag.setId(id);
         existingTag.setName("old-name");
+        existingTag.setUser(user1);
 
         Tag updatedTag = new Tag();
         updatedTag.setName("new-name");
 
-        when(tagRepository.findById(id))
+        when(tagRepository.findByIdAndUser(id, user1))
                 .thenReturn(Optional.of(existingTag));
-        when(tagRepository.existsByName("new-name"))
+
+        when(tagRepository.existsByNameAndUser("new-name", user1))
                 .thenReturn(false);
+
         when(tagRepository.save(existingTag))
                 .thenReturn(existingTag);
 
-        Tag result = tagService.updateTag(id, updatedTag);
+        Tag result = tagService.updateTag(
+                id,
+                updatedTag,
+                user1
+        );
 
         assertEquals("new-name", existingTag.getName());
         assertSame(existingTag, result);
 
-        verify(tagRepository).findById(id);
-        verify(tagRepository).existsByName("new-name");
-        verify(tagRepository).save(existingTag);
+        verify(tagRepository)
+                .findByIdAndUser(id, user1);
+
+        verify(tagRepository)
+                .existsByNameAndUser("new-name", user1);
+
+        verify(tagRepository)
+                .save(existingTag);
     }
 
     @Test
@@ -190,44 +263,64 @@ class TagServiceImplTest {
         Tag existingTag = new Tag();
         existingTag.setId(id);
         existingTag.setName("backend");
+        existingTag.setUser(user1);
 
         Tag updatedTag = new Tag();
         updatedTag.setName("backend");
 
-        when(tagRepository.findById(id))
+        when(tagRepository.findByIdAndUser(id, user1))
                 .thenReturn(Optional.of(existingTag));
+
         when(tagRepository.save(existingTag))
                 .thenReturn(existingTag);
 
-        Tag result = tagService.updateTag(id, updatedTag);
+        Tag result = tagService.updateTag(
+                id,
+                updatedTag,
+                user1
+        );
 
         assertSame(existingTag, result);
         assertEquals("backend", existingTag.getName());
 
-        verify(tagRepository).findById(id);
-        verify(tagRepository, never()).existsByName(anyString());
-        verify(tagRepository).save(existingTag);
+        verify(tagRepository)
+                .findByIdAndUser(id, user1);
+
+        verify(tagRepository, never())
+                .existsByNameAndUser(
+                        anyString(),
+                        any(User.class)
+                );
+
+        verify(tagRepository)
+                .save(existingTag);
     }
 
     @Test
-    void updateTag_shouldThrowWhenNewNameAlreadyExists() {
+    void updateTag_shouldThrowWhenNewNameAlreadyExistsForSameUser() {
         Long id = 1L;
 
         Tag existingTag = new Tag();
         existingTag.setId(id);
         existingTag.setName("backend");
+        existingTag.setUser(user1);
 
         Tag updatedTag = new Tag();
         updatedTag.setName("frontend");
 
-        when(tagRepository.findById(id))
+        when(tagRepository.findByIdAndUser(id, user1))
                 .thenReturn(Optional.of(existingTag));
-        when(tagRepository.existsByName("frontend"))
+
+        when(tagRepository.existsByNameAndUser("frontend", user1))
                 .thenReturn(true);
 
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
-                () -> tagService.updateTag(id, updatedTag)
+                () -> tagService.updateTag(
+                        id,
+                        updatedTag,
+                        user1
+                )
         );
 
         assertEquals(
@@ -237,38 +330,47 @@ class TagServiceImplTest {
 
         assertEquals("backend", existingTag.getName());
 
-        verify(tagRepository).findById(id);
-        verify(tagRepository).existsByName("frontend");
-        verify(tagRepository, never()).save(any(Tag.class));
+        verify(tagRepository)
+                .findByIdAndUser(id, user1);
+
+        verify(tagRepository)
+                .existsByNameAndUser("frontend", user1);
+
+        verify(tagRepository, never())
+                .save(any(Tag.class));
     }
 
     @Test
-    void deleteTag_shouldFindAndDeleteTag() {
+    void deleteTag_shouldFindAndDeleteTagForUser() {
         Long id = 1L;
 
         Tag tag = new Tag();
         tag.setId(id);
         tag.setName("backend");
+        tag.setUser(user1);
 
-        when(tagRepository.findById(id))
+        when(tagRepository.findByIdAndUser(id, user1))
                 .thenReturn(Optional.of(tag));
 
-        tagService.deleteTag(id);
+        tagService.deleteTag(id, user1);
 
-        verify(tagRepository).findById(id);
-        verify(tagRepository).delete(tag);
+        verify(tagRepository)
+                .findByIdAndUser(id, user1);
+
+        verify(tagRepository)
+                .delete(tag);
     }
 
     @Test
-    void deleteTag_shouldThrowWhenTagDoesNotExist() {
+    void deleteTag_shouldThrowWhenTagDoesNotBelongToUser() {
         Long id = 999L;
 
-        when(tagRepository.findById(id))
+        when(tagRepository.findByIdAndUser(id, user1))
                 .thenReturn(Optional.empty());
 
         TagNotFoundException exception = assertThrows(
                 TagNotFoundException.class,
-                () -> tagService.deleteTag(id)
+                () -> tagService.deleteTag(id, user1)
         );
 
         assertEquals(
@@ -276,7 +378,10 @@ class TagServiceImplTest {
                 exception.getMessage()
         );
 
-        verify(tagRepository).findById(id);
-        verify(tagRepository, never()).delete(any(Tag.class));
+        verify(tagRepository)
+                .findByIdAndUser(id, user1);
+
+        verify(tagRepository, never())
+                .delete(any(Tag.class));
     }
 }

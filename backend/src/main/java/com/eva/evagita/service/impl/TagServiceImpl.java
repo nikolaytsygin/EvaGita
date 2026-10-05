@@ -2,6 +2,7 @@ package com.eva.evagita.service.impl;
 
 import com.eva.evagita.exception.TagNotFoundException;
 import com.eva.evagita.model.Tag;
+import com.eva.evagita.model.User;
 import com.eva.evagita.repository.TagRepository;
 import com.eva.evagita.service.TagService;
 import org.springframework.stereotype.Service;
@@ -18,24 +19,26 @@ public class TagServiceImpl implements TagService {
     }
 
     @Override
-    public Tag createTag(Tag tag) {
-        if (tagRepository.existsByName(tag.getName())) {
+    public Tag createTag(Tag tag, User user) {
+        if (tagRepository.existsByNameAndUser(tag.getName(), user)) {
             throw new IllegalArgumentException(
                     "Tag with name '" + tag.getName() + "' already exists"
             );
         }
 
+        tag.setUser(user);
+
         return tagRepository.save(tag);
     }
 
     @Override
-    public List<Tag> getAllTags() {
-        return tagRepository.findAll();
+    public List<Tag> getAllTags(User user) {
+        return tagRepository.findAllByUser(user);
     }
 
     @Override
-    public Tag getTagById(Long id) {
-        return tagRepository.findById(id)
+    public Tag getTagById(Long id, User user) {
+        return tagRepository.findByIdAndUser(id, user)
                 .orElseThrow(() ->
                         new TagNotFoundException(
                                 "Tag not found with id: " + id
@@ -43,8 +46,8 @@ public class TagServiceImpl implements TagService {
     }
 
     @Override
-    public Tag getTagByName(String name) {
-        return tagRepository.findByName(name)
+    public Tag getTagByName(String name, User user) {
+        return tagRepository.findByNameAndUser(name, user)
                 .orElseThrow(() ->
                         new TagNotFoundException(
                                 "Tag not found with name: " + name
@@ -52,11 +55,11 @@ public class TagServiceImpl implements TagService {
     }
 
     @Override
-    public Tag updateTag(Long id, Tag tag) {
-        Tag existingTag = getTagById(id);
+    public Tag updateTag(Long id, Tag tag, User user) {
+        Tag existingTag = getTagById(id, user);
 
         if (!existingTag.getName().equals(tag.getName())
-                && tagRepository.existsByName(tag.getName())) {
+                && tagRepository.existsByNameAndUser(tag.getName(), user)) {
             throw new IllegalArgumentException(
                     "Tag with name '" + tag.getName() + "' already exists"
             );
@@ -68,8 +71,8 @@ public class TagServiceImpl implements TagService {
     }
 
     @Override
-    public void deleteTag(Long id) {
-        Tag existingTag = getTagById(id);
+    public void deleteTag(Long id, User user) {
+        Tag existingTag = getTagById(id, user);
         tagRepository.delete(existingTag);
     }
 }

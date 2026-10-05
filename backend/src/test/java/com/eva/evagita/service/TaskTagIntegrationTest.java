@@ -7,6 +7,7 @@ import com.eva.evagita.model.User;
 import com.eva.evagita.repository.TagRepository;
 import com.eva.evagita.repository.TaskRepository;
 import com.eva.evagita.repository.UserRepository;
+import com.eva.evagita.repository.NotificationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,10 +29,14 @@ class TaskTagIntegrationTest extends PostgresIntegrationTest {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private NotificationRepository notificationRepository;
+
     private User testUser;
 
     @BeforeEach
     void setUp() {
+        notificationRepository.deleteAll();
         taskRepository.deleteAll();
         tagRepository.deleteAll();
         userRepository.deleteAll();
@@ -49,6 +54,7 @@ class TaskTagIntegrationTest extends PostgresIntegrationTest {
     void shouldSaveTaskWithTagAndReadRelationship() {
         Tag tag = new Tag();
         tag.setName("backend");
+        tag.setUser(testUser);
         tag = tagRepository.save(tag);
 
         Task task = new Task();
@@ -73,9 +79,11 @@ class TaskTagIntegrationTest extends PostgresIntegrationTest {
     void shouldSaveMultipleTagsForOneTask() {
         Tag backendTag = new Tag();
         backendTag.setName("backend");
+        backendTag.setUser(testUser);
 
         Tag javaTag = new Tag();
         javaTag.setName("java");
+        javaTag.setUser(testUser);
 
         tagRepository.saveAll(
                 Set.of(backendTag, javaTag)
@@ -107,6 +115,7 @@ class TaskTagIntegrationTest extends PostgresIntegrationTest {
     void shouldRemoveTagRelationshipWithoutDeletingTag() {
         Tag tag = new Tag();
         tag.setName("temporary");
+        tag.setUser(testUser);
         tag = tagRepository.save(tag);
 
         Task task = new Task();
@@ -137,6 +146,7 @@ class TaskTagIntegrationTest extends PostgresIntegrationTest {
     void shouldKeepTagSharedBetweenDifferentTasks() {
         Tag tag = new Tag();
         tag.setName("shared");
+        tag.setUser(testUser);
         tag = tagRepository.save(tag);
 
         Task firstTask = new Task();

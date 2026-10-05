@@ -52,6 +52,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/users/**").authenticated()
                         .requestMatchers("/api/tasks/**").authenticated()
                         .requestMatchers("/api/projects/**").authenticated()
+                        .requestMatchers("/api/tags/**").authenticated()
                         .anyRequest().permitAll()
                 )
                 .addFilterBefore(

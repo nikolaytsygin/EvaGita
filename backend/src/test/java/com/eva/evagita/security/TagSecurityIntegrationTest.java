@@ -37,13 +37,13 @@ class TagSecurityIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    void getTags_shouldBeAccessibleWithoutAuthentication() throws Exception {
+    void getTags_shouldRequireAuthentication() throws Exception {
         mockMvc.perform(get("/api/tags"))
-                .andExpect(status().isOk());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
-    void createTag_shouldBeAccessibleWithoutAuthentication() throws Exception {
+    void createTag_shouldRequireAuthentication() throws Exception {
         mockMvc.perform(post("/api/tags")
                         .contentType("application/json")
                         .content("""
@@ -51,6 +51,6 @@ class TagSecurityIntegrationTest extends PostgresIntegrationTest {
                                   "name": "security-test"
                                 }
                                 """))
-                .andExpect(status().isCreated());
+                .andExpect(status().isUnauthorized());
     }
 }

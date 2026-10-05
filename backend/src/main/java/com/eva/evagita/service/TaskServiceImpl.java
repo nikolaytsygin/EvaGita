@@ -227,7 +227,7 @@ public class TaskServiceImpl implements TaskService {
     public void addTagToTask(Long taskId, Long tagId, User user) {
         Task task = getTaskById(taskId, user);
 
-        Tag tag = tagRepository.findById(tagId)
+        Tag tag = tagRepository.findByIdAndUser(tagId, user)
                 .orElseThrow(() ->
                         new TagNotFoundException(
                                 "Tag not found with id: " + tagId

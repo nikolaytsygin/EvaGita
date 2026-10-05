@@ -374,10 +374,12 @@ class TaskControllerIntegrationTest extends PostgresIntegrationTest {
     void shouldFilterTasksByTagThroughRestApi() throws Exception {
         Tag backendTag = new Tag();
         backendTag.setName("backend");
+        backendTag.setUser(testUser);
         backendTag = tagRepository.saveAndFlush(backendTag);
 
         Tag javaTag = new Tag();
         javaTag.setName("java");
+        javaTag.setUser(testUser);
         javaTag = tagRepository.saveAndFlush(javaTag);
 
         Task backendTask = createTask(
