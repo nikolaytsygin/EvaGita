@@ -121,16 +121,16 @@ class NotificationServiceImplTest {
 
     @Test
     void markAsRead_shouldMarkOwnNotificationAsRead() {
-        when(testUser.getId()).thenReturn(1L);
-
         Notification notification = createNotification(
                 testUser,
                 NotificationType.TASK_CREATED,
                 "Task created"
         );
 
-        when(notificationRepository.findById(1L))
-                .thenReturn(Optional.of(notification));
+        when(notificationRepository.findByIdAndUser(
+                eq(1L),
+                any(User.class)
+        )).thenReturn(Optional.of(notification));
 
         when(notificationRepository.save(notification))
                 .thenReturn(notification);
@@ -141,34 +141,37 @@ class NotificationServiceImplTest {
         assertThat(result).isSameAs(notification);
         assertThat(result.isRead()).isTrue();
 
+        verify(notificationRepository)
+                .findByIdAndUser(1L, testUser);
         verify(notificationRepository).save(notification);
     }
 
     @Test
     void markAsRead_shouldRejectNotificationOfAnotherUser() {
-        when(testUser.getId()).thenReturn(1L);
-        when(anotherUser.getId()).thenReturn(2L);
-
         Notification notification = createNotification(
                 anotherUser,
                 NotificationType.TASK_CREATED,
                 "Task created"
         );
 
-        when(notificationRepository.findById(1L))
-                .thenReturn(Optional.of(notification));
+        when(notificationRepository.findByIdAndUser(
+                eq(1L),
+                any(User.class)
+        )).thenReturn(Optional.empty());
 
         assertThrows(
                 IllegalArgumentException.class,
                 () -> notificationService.markAsRead(1L, testUser)
         );
 
+        verify(notificationRepository)
+                .findByIdAndUser(1L, testUser);
         verify(notificationRepository, never()).save(any());
     }
 
     @Test
     void markAsRead_shouldRejectMissingNotification() {
-        when(notificationRepository.findById(999L))
+        when(notificationRepository.findByIdAndUser(999L, testUser))
                 .thenReturn(Optional.empty());
 
         assertThrows(

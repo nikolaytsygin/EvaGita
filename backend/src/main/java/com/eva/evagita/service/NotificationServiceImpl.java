@@ -59,18 +59,12 @@ public class NotificationServiceImpl implements NotificationService {
             User user
     ) {
         Notification notification = notificationRepository
-                .findById(notificationId)
+                .findByIdAndUser(notificationId, user)
                 .orElseThrow(() ->
                         new IllegalArgumentException(
                                 "Notification not found: " + notificationId
                         )
                 );
-
-        if (!notification.getUser().getId().equals(user.getId())) {
-            throw new IllegalArgumentException(
-                    "Notification does not belong to user"
-            );
-        }
 
         notification.setRead(true);
 
