@@ -289,6 +289,42 @@ class TaskControllerIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
+    void shouldReturnTaskStatusStatisticsOnlyForCurrentUser() throws Exception {
+        createTask("Own TODO task", testUser);
+
+        Task ownInProgressTask = createTask("Own IN_PROGRESS task", testUser);
+        ownInProgressTask.setStatus(TaskStatus.IN_PROGRESS);
+        taskRepository.saveAndFlush(ownInProgressTask);
+
+        Task ownDoneTask = createTask("Own DONE task", testUser);
+        ownDoneTask.setStatus(TaskStatus.DONE);
+        taskRepository.saveAndFlush(ownDoneTask);
+
+        createTask("Foreign TODO task", anotherUser);
+
+        Task foreignInProgressTask = createTask(
+                "Foreign IN_PROGRESS task",
+                anotherUser
+        );
+        foreignInProgressTask.setStatus(TaskStatus.IN_PROGRESS);
+        taskRepository.saveAndFlush(foreignInProgressTask);
+
+        Task foreignDoneTask = createTask("Foreign DONE task", anotherUser);
+        foreignDoneTask.setStatus(TaskStatus.DONE);
+        taskRepository.saveAndFlush(foreignDoneTask);
+
+        mockMvc.perform(get("/api/tasks/statistics/status")
+                        .header(
+                                "Authorization",
+                                "Bearer " + testUserToken
+                        ))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.todo").value(1))
+                .andExpect(jsonPath("$.inProgress").value(1))
+                .andExpect(jsonPath("$.done").value(1));
+    }
+
+    @Test
     void shouldFilterTasksByStatusThroughRestApi() throws Exception {
         Task todoTask = createTask(
                 "TODO task",
