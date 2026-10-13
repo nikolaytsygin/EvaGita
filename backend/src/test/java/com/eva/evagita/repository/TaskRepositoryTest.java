@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -251,6 +252,53 @@ class TaskRepositoryTest extends PostgresIntegrationTest {
                 savedTask.getId(),
                 anotherUser
         )).isEmpty();
+    }
+
+    @Test
+    void shouldFindOnlyOverdueTasksThatAreNotDone() {
+        Task overdueTodo = new Task();
+        overdueTodo.setTitle("Overdue TODO task");
+        overdueTodo.setStatus(TaskStatus.TODO);
+        overdueTodo.setDueDate(LocalDate.now().minusDays(2));
+        overdueTodo.setUser(testUser);
+
+        Task overdueInProgress = new Task();
+        overdueInProgress.setTitle("Overdue IN_PROGRESS task");
+        overdueInProgress.setStatus(TaskStatus.IN_PROGRESS);
+        overdueInProgress.setDueDate(LocalDate.now().minusDays(1));
+        overdueInProgress.setUser(anotherUser);
+
+        Task overdueDone = new Task();
+        overdueDone.setTitle("Overdue DONE task");
+        overdueDone.setStatus(TaskStatus.DONE);
+        overdueDone.setDueDate(LocalDate.now().minusDays(3));
+        overdueDone.setUser(testUser);
+
+        Task futureTodo = new Task();
+        futureTodo.setTitle("Future TODO task");
+        futureTodo.setStatus(TaskStatus.TODO);
+        futureTodo.setDueDate(LocalDate.now().plusDays(2));
+        futureTodo.setUser(testUser);
+
+        taskRepository.saveAllAndFlush(List.of(
+                overdueTodo,
+                overdueInProgress,
+                overdueDone,
+                futureTodo
+        ));
+
+        List<Task> result =
+                taskRepository.findAllByDueDateBeforeAndStatusNot(
+                        LocalDate.now(),
+                        TaskStatus.DONE
+                );
+
+        assertThat(result)
+                .extracting(Task::getTitle)
+                .containsExactlyInAnyOrder(
+                        "Overdue TODO task",
+                        "Overdue IN_PROGRESS task"
+                );
     }
 
     @Test
