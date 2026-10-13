@@ -996,4 +996,51 @@ class TaskControllerIntegrationTest extends PostgresIntegrationTest {
         assertThat(taskRepository.existsById(taskId)).isTrue();
     }
 
+
+
+    @Test
+    void shouldNotUpdateTaskToAnotherUsersProjectThroughRestApi()
+            throws Exception {
+        Project ownProject = createProject(
+                "Own project for update",
+                testUser
+        );
+        Project foreignProject = createProject(
+                "Foreign project for update",
+                anotherUser
+        );
+
+        Task task = createTask("Task with own project", testUser);
+        task.setProject(ownProject);
+        task = taskRepository.saveAndFlush(task);
+
+        Long taskId = task.getId();
+        Long ownProjectId = ownProject.getId();
+        Long foreignProjectId = foreignProject.getId();
+
+        mockMvc.perform(put("/api/tasks/{id}", taskId)
+                        .header("Authorization", "Bearer " + testUserToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Attempted project takeover",
+                                  "status": "TODO",
+                                  "priority": "MEDIUM",
+                                  "projectId": %d
+                                }
+                                """.formatted(foreignProjectId)))
+                .andExpect(status().isBadRequest());
+
+        Task unchangedTask = taskRepository.findById(taskId)
+                .orElseThrow();
+
+        assertThat(unchangedTask.getProject()).isNotNull();
+        assertThat(unchangedTask.getProject().getId())
+                .isEqualTo(ownProjectId);
+        assertThat(unchangedTask.getTitle())
+                .isEqualTo("Task with own project");
+
+        assertThat(projectRepository.existsById(foreignProjectId)).isTrue();
+    }
+
 }
