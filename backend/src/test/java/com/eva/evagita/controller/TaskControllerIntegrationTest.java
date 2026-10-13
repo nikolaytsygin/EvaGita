@@ -948,4 +948,52 @@ class TaskControllerIntegrationTest extends PostgresIntegrationTest {
         assertThat(tagRepository.existsById(tagId)).isTrue();
     }
 
+
+
+    @Test
+    void shouldRejectRemovingAnotherUsersTagThroughRestApi()
+            throws Exception {
+        Task task = createTask("Task with own tag", testUser);
+
+        Tag foreignTag = new Tag();
+        foreignTag.setName("foreign-tag-for-removal");
+        foreignTag.setUser(anotherUser);
+        foreignTag = tagRepository.saveAndFlush(foreignTag);
+
+        Long taskId = task.getId();
+        Long tagId = foreignTag.getId();
+
+        mockMvc.perform(delete(
+                        "/api/tasks/{taskId}/tags/{tagId}",
+                        taskId,
+                        tagId
+                )
+                        .header("Authorization", "Bearer " + testUserToken))
+                .andExpect(status().isNotFound());
+
+        assertThat(taskRepository.existsById(taskId)).isTrue();
+        assertThat(tagRepository.existsById(tagId)).isTrue();
+        assertThat(taskRepository.findById(taskId)
+                .orElseThrow()
+                .getTags()).isEmpty();
+    }
+
+    @Test
+    void shouldReturnNotFoundWhenRemovingNonexistentTagFromTask()
+            throws Exception {
+        Task task = createTask("Task for nonexistent tag", testUser);
+        Long taskId = task.getId();
+        Long nonexistentTagId = Long.MAX_VALUE;
+
+        mockMvc.perform(delete(
+                        "/api/tasks/{taskId}/tags/{tagId}",
+                        taskId,
+                        nonexistentTagId
+                )
+                        .header("Authorization", "Bearer " + testUserToken))
+                .andExpect(status().isNotFound());
+
+        assertThat(taskRepository.existsById(taskId)).isTrue();
+    }
+
 }
