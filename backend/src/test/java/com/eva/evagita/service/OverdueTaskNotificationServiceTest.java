@@ -84,6 +84,82 @@ class OverdueTaskNotificationServiceTest {
     }
 
     @Test
+    void notifyOverdueTasks_shouldSendEventsToEachTaskOwner() {
+        User secondUser = mock(User.class);
+        when(testUser.getId()).thenReturn(1L);
+        when(secondUser.getId()).thenReturn(2L);
+
+        Task firstTask = new Task();
+        firstTask.setId(10L);
+        firstTask.setTitle("First user's overdue task");
+        firstTask.setStatus(TaskStatus.TODO);
+        firstTask.setDueDate(LocalDate.now().minusDays(1));
+        firstTask.setUser(testUser);
+
+        Task secondTask = new Task();
+        secondTask.setId(20L);
+        secondTask.setTitle("Second user's overdue task");
+        secondTask.setStatus(TaskStatus.IN_PROGRESS);
+        secondTask.setDueDate(LocalDate.now().minusDays(2));
+        secondTask.setUser(secondUser);
+
+        when(taskRepository.findAllByDueDateBeforeAndStatusNot(
+                LocalDate.now(),
+                TaskStatus.DONE
+        )).thenReturn(List.of(firstTask, secondTask));
+
+        service.notifyOverdueTasks();
+
+        verify(taskEventProducer).send(new TaskEvent(
+                NotificationType.TASK_OVERDUE,
+                1L,
+                10L,
+                "First user's overdue task"
+        ));
+        verify(taskEventProducer).send(new TaskEvent(
+                NotificationType.TASK_OVERDUE,
+                2L,
+                20L,
+                "Second user's overdue task"
+        ));
+        verify(taskEventProducer, times(2)).send(any(TaskEvent.class));
+    }
+
+    @Test
+    void notifyOverdueTasks_shouldNotPublishEventForDoneTask() {
+        when(testUser.getId()).thenReturn(1L);
+
+        Task doneTask = new Task();
+        doneTask.setId(10L);
+        doneTask.setTitle("Completed task");
+        doneTask.setStatus(TaskStatus.DONE);
+        doneTask.setDueDate(LocalDate.now().minusDays(2));
+        doneTask.setUser(testUser);
+
+        Task overdueTask = new Task();
+        overdueTask.setId(20L);
+        overdueTask.setTitle("Open overdue task");
+        overdueTask.setStatus(TaskStatus.TODO);
+        overdueTask.setDueDate(LocalDate.now().minusDays(1));
+        overdueTask.setUser(testUser);
+
+        when(taskRepository.findAllByDueDateBeforeAndStatusNot(
+                LocalDate.now(),
+                TaskStatus.DONE
+        )).thenReturn(List.of(overdueTask));
+
+        service.notifyOverdueTasks();
+
+        verify(taskEventProducer).send(new TaskEvent(
+                NotificationType.TASK_OVERDUE,
+                1L,
+                20L,
+                "Open overdue task"
+        ));
+        verify(taskEventProducer, times(1)).send(any(TaskEvent.class));
+    }
+
+    @Test
     void notifyOverdueTasks_shouldNotPublishAnythingWhenNoOverdueTasks() {
         when(taskRepository.findAllByDueDateBeforeAndStatusNot(
                 LocalDate.now(),
