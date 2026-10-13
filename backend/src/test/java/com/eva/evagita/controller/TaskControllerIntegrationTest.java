@@ -876,4 +876,76 @@ class TaskControllerIntegrationTest extends PostgresIntegrationTest {
                         .value("Own task in date range"));
     }
 
+    @Test
+    void shouldRejectAddingAnotherUsersTagToOwnTaskThroughRestApi()
+            throws Exception {
+        Task task = createTask("Task for foreign tag", testUser);
+
+        Tag foreignTag = new Tag();
+        foreignTag.setName("another-users-private-tag");
+        foreignTag.setUser(anotherUser);
+        foreignTag = tagRepository.saveAndFlush(foreignTag);
+
+        mockMvc.perform(post(
+                        "/api/tasks/{taskId}/tags/{tagId}",
+                        task.getId(),
+                        foreignTag.getId()
+                )
+                        .header("Authorization", "Bearer " + testUserToken))
+                .andExpect(status().isNotFound());
+
+        Task unchangedTask = taskRepository.findById(task.getId())
+                .orElseThrow();
+
+        assertThat(unchangedTask.getTags()).isEmpty();
+        assertThat(tagRepository.existsById(foreignTag.getId())).isTrue();
+    }
+
+    @Test
+    void shouldReturnNotFoundWhenGettingTagsOfAnotherUsersTask()
+            throws Exception {
+        Task foreignTask = createTask(
+                "Another user's private task",
+                anotherUser
+        );
+
+        mockMvc.perform(get(
+                        "/api/tasks/{taskId}/tags",
+                        foreignTask.getId()
+                )
+                        .header("Authorization", "Bearer " + testUserToken))
+                .andExpect(status().isNotFound());
+
+        assertThat(taskRepository.existsById(foreignTask.getId())).isTrue();
+    }
+
+    @Test
+    void shouldRemoveTaskTagRelationshipWithoutDeletingTagThroughRestApi()
+            throws Exception {
+        Tag tag = new Tag();
+        tag.setName("removable-tag");
+        tag.setUser(testUser);
+        tag = tagRepository.saveAndFlush(tag);
+
+        Task task = createTask("Task with removable tag", testUser);
+        task.getTags().add(tag);
+        task = taskRepository.saveAndFlush(task);
+
+        Long taskId = task.getId();
+        Long tagId = tag.getId();
+
+        mockMvc.perform(delete(
+                        "/api/tasks/{taskId}/tags/{tagId}",
+                        taskId,
+                        tagId
+                )
+                        .header("Authorization", "Bearer " + testUserToken))
+                .andExpect(status().isNoContent());
+
+        Task updatedTask = taskRepository.findById(taskId).orElseThrow();
+
+        assertThat(updatedTask.getTags()).isEmpty();
+        assertThat(tagRepository.existsById(tagId)).isTrue();
+    }
+
 }
