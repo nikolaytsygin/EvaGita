@@ -13,10 +13,12 @@ import com.eva.evagita.repository.TagRepository;
 import com.eva.evagita.repository.TaskRepository;
 import com.eva.evagita.repository.UserRepository;
 import com.eva.evagita.security.JwtService;
+import com.eva.evagita.messaging.TaskEventProducer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -59,6 +61,9 @@ class TaskControllerIntegrationTest extends PostgresIntegrationTest {
 
     @Autowired
     private JwtService jwtService;
+
+    @MockitoBean
+    private TaskEventProducer taskEventProducer;
 
     private MockMvc mockMvc;
 

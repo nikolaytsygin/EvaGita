@@ -1,6 +1,7 @@
 package com.eva.evagita.service;
 
 import com.eva.evagita.PostgresIntegrationTest;
+import com.eva.evagita.messaging.TaskEventProducer;
 import com.eva.evagita.exception.TaskNotFoundException;
 import com.eva.evagita.model.Task;
 import com.eva.evagita.model.TaskPriority;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -35,6 +37,9 @@ class TaskServiceIntegrationTest extends PostgresIntegrationTest {
 
     @Autowired
     private NotificationRepository notificationRepository;
+
+    @MockitoBean
+    private TaskEventProducer taskEventProducer;
 
     private User testUser;
     private User anotherUser;
