@@ -391,6 +391,56 @@ class TaskControllerIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
+    void shouldReturn400WhenFilteringTasksByInvalidPriority() throws Exception {
+        mockMvc.perform(get("/api/tasks")
+                        .param("priority", "INVALID")
+                        .header("Authorization", "Bearer " + testUserToken))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.message")
+                        .value("Invalid value for parameter 'priority'"))
+                .andExpect(jsonPath("$.timestamp").exists());
+    }
+
+    @Test
+    void shouldReturn400WhenFilteringTasksByInvalidDueDate() throws Exception {
+        mockMvc.perform(get("/api/tasks")
+                        .param("dueDateFrom", "not-a-date")
+                        .header("Authorization", "Bearer " + testUserToken))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.message")
+                        .value("Invalid value for parameter 'dueDateFrom'"))
+                .andExpect(jsonPath("$.timestamp").exists());
+    }
+
+    @Test
+    void shouldReturn400WhenSearchingTasksWithoutTitle() throws Exception {
+        mockMvc.perform(get("/api/tasks/search")
+                        .header("Authorization", "Bearer " + testUserToken))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.message")
+                        .value("Required request parameter 'title' is missing"))
+                .andExpect(jsonPath("$.timestamp").exists());
+    }
+
+    @Test
+    void shouldReturn400WhenSearchingTasksWithoutDescription() throws Exception {
+        mockMvc.perform(get("/api/tasks/search/description")
+                        .header("Authorization", "Bearer " + testUserToken))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.message")
+                        .value("Required request parameter 'description' is missing"))
+                .andExpect(jsonPath("$.timestamp").exists());
+    }
+
+    @Test
     void shouldReturn400WhenFilteringTasksByInvalidStatus() throws Exception {
         mockMvc.perform(get("/api/tasks")
                         .param("status", "INVALID")
@@ -766,6 +816,23 @@ class TaskControllerIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].id")
                         .value(matchingTask.getId()));
+    }
+
+    @Test
+    void shouldReturnEmptyListWhenDueDateFromIsAfterDueDateTo()
+            throws Exception {
+        LocalDate today = LocalDate.now();
+
+        Task task = createTask("Task in date range", testUser);
+        task.setDueDate(today);
+        taskRepository.saveAndFlush(task);
+
+        mockMvc.perform(get("/api/tasks")
+                        .param("dueDateFrom", today.plusDays(2).toString())
+                        .param("dueDateTo", today.minusDays(2).toString())
+                        .header("Authorization", "Bearer " + testUserToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
     }
 
     @Test
