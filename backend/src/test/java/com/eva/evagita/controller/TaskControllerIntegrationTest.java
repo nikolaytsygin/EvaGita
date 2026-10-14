@@ -698,6 +698,77 @@ class TaskControllerIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
+    void shouldSearchTasksByDescriptionOnlyForCurrentUser() throws Exception {
+        Task ownTask = createTask("Own task", testUser);
+        ownTask.setDescription("shared deployment description");
+        ownTask = taskRepository.saveAndFlush(ownTask);
+
+        Task anotherUsersTask = createTask("Private task", anotherUser);
+        anotherUsersTask.setDescription("shared deployment description");
+        taskRepository.saveAndFlush(anotherUsersTask);
+
+        Task unrelatedTask = createTask("Unrelated task", testUser);
+        unrelatedTask.setDescription("unrelated description");
+        taskRepository.saveAndFlush(unrelatedTask);
+
+        mockMvc.perform(get("/api/tasks/search/description")
+                        .param("description", "deployment")
+                        .header("Authorization", "Bearer " + testUserToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(ownTask.getId()))
+                .andExpect(jsonPath("$[0].description")
+                        .value("shared deployment description"));
+    }
+
+    @Test
+    void shouldApplyCombinedFiltersWithoutReturningAnotherUsersTasks()
+            throws Exception {
+        LocalDate today = LocalDate.now();
+
+        Task matchingTask = createTask("Matching task", testUser);
+        matchingTask.setStatus(TaskStatus.TODO);
+        matchingTask.setPriority(TaskPriority.HIGH);
+        matchingTask.setDueDate(today);
+        matchingTask = taskRepository.saveAndFlush(matchingTask);
+
+        Task wrongPriorityTask = createTask("Wrong priority", testUser);
+        wrongPriorityTask.setStatus(TaskStatus.TODO);
+        wrongPriorityTask.setPriority(TaskPriority.LOW);
+        wrongPriorityTask.setDueDate(today);
+        taskRepository.saveAndFlush(wrongPriorityTask);
+
+        Task wrongStatusTask = createTask("Wrong status", testUser);
+        wrongStatusTask.setStatus(TaskStatus.DONE);
+        wrongStatusTask.setPriority(TaskPriority.HIGH);
+        wrongStatusTask.setDueDate(today);
+        taskRepository.saveAndFlush(wrongStatusTask);
+
+        Task outsideDateRangeTask = createTask("Outside date range", testUser);
+        outsideDateRangeTask.setStatus(TaskStatus.TODO);
+        outsideDateRangeTask.setPriority(TaskPriority.HIGH);
+        outsideDateRangeTask.setDueDate(today.minusDays(10));
+        taskRepository.saveAndFlush(outsideDateRangeTask);
+
+        Task anotherUsersTask = createTask("Another user's matching task", anotherUser);
+        anotherUsersTask.setStatus(TaskStatus.TODO);
+        anotherUsersTask.setPriority(TaskPriority.HIGH);
+        anotherUsersTask.setDueDate(today);
+        taskRepository.saveAndFlush(anotherUsersTask);
+
+        mockMvc.perform(get("/api/tasks")
+                        .param("status", "TODO")
+                        .param("priority", "HIGH")
+                        .param("dueDateFrom", today.minusDays(1).toString())
+                        .param("dueDateTo", today.plusDays(1).toString())
+                        .header("Authorization", "Bearer " + testUserToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id")
+                        .value(matchingTask.getId()));
+    }
+
+    @Test
     void shouldReturn404WhenTaskDoesNotExist() throws Exception {
         mockMvc.perform(get("/api/tasks/999999")
                         .header("Authorization", "Bearer " + testUserToken))
