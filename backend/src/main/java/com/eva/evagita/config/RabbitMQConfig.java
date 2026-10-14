@@ -43,10 +43,7 @@ public class RabbitMQConfig {
 
     @Bean
     public Queue notificationQueue() {
-        return QueueBuilder.durable(NOTIFICATION_QUEUE)
-                .deadLetterExchange(DEAD_LETTER_EXCHANGE)
-                .deadLetterRoutingKey(DEAD_LETTER_ROUTING_KEY)
-                .build();
+        return QueueBuilder.durable(NOTIFICATION_QUEUE).build();
     }
 
     @Bean

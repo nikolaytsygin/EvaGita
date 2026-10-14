@@ -19,7 +19,13 @@ class DeadLetterQueueIntegrationTest extends PostgresIntegrationTest {
     private RabbitTemplate rabbitTemplate;
 
     @Test
-    void shouldSendUnprocessableEventToDeadLetterQueue() throws InterruptedException {
+    void shouldSendUnprocessableEventToDeadLetterQueue() throws Exception {
+        configureDeadLetterPolicy(
+                RabbitMQConfig.NOTIFICATION_QUEUE,
+                RabbitMQConfig.DEAD_LETTER_EXCHANGE,
+                RabbitMQConfig.DEAD_LETTER_ROUTING_KEY
+        );
+
         TaskEvent event = new TaskEvent(
                 NotificationType.TASK_CREATED,
                 Long.MAX_VALUE,

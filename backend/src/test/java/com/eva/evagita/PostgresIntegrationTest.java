@@ -4,6 +4,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.RabbitMQContainer;
+import org.testcontainers.containers.Container;
 
 public abstract class PostgresIntegrationTest {
 
@@ -19,6 +20,37 @@ public abstract class PostgresIntegrationTest {
     static {
         postgres.start();
         rabbitmq.start();
+    }
+
+    protected static void configureDeadLetterPolicy(
+            String queueName,
+            String exchangeName,
+            String routingKey
+    ) throws Exception {
+        String definition = String.format(
+                "{\"dead-letter-exchange\":\"%s\","
+                        + "\"dead-letter-routing-key\":\"%s\"}",
+                exchangeName,
+                routingKey
+        );
+
+        Container.ExecResult result = rabbitmq.execInContainer(
+                "rabbitmqctl",
+                "set_policy",
+                "--vhost", "/",
+                "--priority", "10",
+                "--apply-to", "queues",
+                "evagita-test-dlx",
+                "^" + queueName.replace(".", "\\.") + "$",
+                definition
+        );
+
+        if (result.getExitCode() != 0) {
+            throw new IllegalStateException(
+                    "Failed to configure RabbitMQ DLX policy: "
+                            + result.getStderr()
+            );
+        }
     }
 
     @DynamicPropertySource
