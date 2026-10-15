@@ -65,12 +65,29 @@ result is successful.
 A successful `pg_restore --list` confirms that PostgreSQL can read the archive,
 but does not prove that the database can be restored.
 
-The restore procedure was tested using a separate database named
-`evagita_restore_test`. The restored tables and row counts were compared with
-the source database and matched at the time of the test.
+Local restore verification was previously tested using a separate database
+named `evagita_restore_test`.
 
-For a future test, first ensure the chosen test database does not already exist.
-Do not drop or overwrite a database to make room for a test.
+A cloud restore test was subsequently completed using the archive
+`evagita-20261015T141607Z.dump` downloaded from Yandex Object Storage. Its SHA-256
+checksum was verified, the archive was restored into the new database
+`evagita_cloud_restore_test`, and exact row counts matched between production
+and the restored database for all six tables:
+
+| Table | Production | Cloud restore |
+|---|---:|---:|
+| `notifications` | 9 | 9 |
+| `projects` | 1 | 1 |
+| `tags` | 2 | 2 |
+| `task_tags` | 1 | 1 |
+| `tasks` | 4 | 4 |
+| `users` | 3 | 3 |
+
+Matching row counts validate table-level counts, but do not prove byte-for-byte
+identity of all data.
+
+For future restore tests, first ensure the chosen test database does not already
+exist. Do not drop or overwrite a database to make room for a test.
 
 Example restore into a newly created, separate test database:
 
@@ -110,7 +127,6 @@ actual incident before execution.
 
 ## Known gaps
 
-- A restore from the remote Object Storage copy has not yet been tested.
 - Local restore verification was performed on the same server as production.
 - Recovery time objective (RTO) and recovery point objective (RPO) have not been measured.
 - Disaster recovery and production failure scenarios still require testing.
