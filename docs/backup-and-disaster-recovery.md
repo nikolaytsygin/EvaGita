@@ -13,10 +13,20 @@
 - Retention: files older than 14 days are eligible for deletion, using `find -mmin`
 - Archive permissions: `0600`
 - Checksum: SHA-256 sidecar file (`.dump.sha256`)
+- Remote storage: Yandex Object Storage bucket `evagita-backups`
+- Remote prefix: `postgresql/`
+- Remote retention: Lifecycle Rule `DeleteOldEvaGitaBackups`, enabled; objects expire 30 days after creation
+- Object Storage endpoint: `https://storage.yandexcloud.net`
+- Object Storage credentials: `/etc/evagita/credentials/yandex-object-storage.env` (root-only; never print or commit this file)
 
-Backups are currently stored on the same server as the production database.
-Remote or off-site storage is not configured. A server or disk loss can therefore
-destroy both the database and its local backups.
+The backup script uploads both the archive and its checksum sidecar to Object Storage.
+It downloads both objects to a temporary directory and validates the downloaded archive
+using `sha256sum -c`. The remote upload and checksum verification have completed
+successfully in a manual systemd service run.
+
+Local retention is 14 days. The Object Storage Lifecycle Rule is configured for
+the `postgresql/` prefix with a 30-day expiration. Lifecycle deletion is asynchronous
+and may not occur exactly at the 30-day mark.
 
 ## Backup operation
 
@@ -34,12 +44,21 @@ Check the timer:
     systemctl list-timers evagita-backup.timer --all --no-pager
     systemctl is-active evagita-backup.timer
 
-Verify a selected archive's checksum from the backup directory:
+Verify a selected local archive's checksum from the backup directory:
 
     cd /var/backups/evagita
     sha256sum -c evagita-YYYYMMDDTHHMMSSZ.dump.sha256
 
 Replace the example timestamp with the actual archive filename.
+
+The backup script also uploads the archive and `.sha256` sidecar to
+`s3://evagita-backups/postgresql/`, downloads both objects, and verifies the
+downloaded archive's checksum. Check the latest service logs:
+
+    sudo journalctl -u evagita-backup.service -n 50 --no-pager
+
+Look for `Remote backup uploaded and SHA-256 verified.` and confirm the service
+result is successful.
 
 ## Restore verification
 
@@ -91,9 +110,9 @@ actual incident before execution.
 
 ## Known gaps
 
-- Off-site backup storage is not configured.
-- Backup and restore have been tested locally, on the same server.
-- Recovery time and recovery point objectives have not been measured.
+- A restore from the remote Object Storage copy has not yet been tested.
+- Local restore verification was performed on the same server as production.
+- Recovery time objective (RTO) and recovery point objective (RPO) have not been measured.
 - Disaster recovery and production failure scenarios still require testing.
 - Monitoring and alerting for backup failures are not configured as part of this
   backup setup.
