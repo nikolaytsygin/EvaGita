@@ -296,9 +296,9 @@ EvaGita — task management platform в стиле современных produc
 
 ## Phase 9 — Reliability
 
-- [ ] PostgreSQL backups
-- [ ] Backup verification
-- [ ] Restore procedure
+- [x] PostgreSQL backups
+- [x] Backup verification
+- [x] Restore procedure
 - [ ] Disaster Recovery documentation
 - [ ] Failure testing
 - [ ] Recovery measurements
@@ -310,7 +310,7 @@ EvaGita — task management platform в стиле современных produc
 - [ ] CI/CD documentation
 - [ ] Monitoring documentation
 - [ ] Security documentation
-- [ ] Backup documentation
+- [x] Backup documentation
 - [ ] Failure scenarios
 - [ ] Screenshots
 - [ ] Production demo
@@ -382,11 +382,11 @@ EvaGita должна поддерживать проверяемые сцена�
 
 ## Backup and Disaster Recovery
 
-Планируемый процесс резервного копирования:
+Текущий процесс резервного копирования:
 
-**PostgreSQL → pg_dump → Compressed Backup → Remote Storage**
+**PostgreSQL → pg_dump → Compressed Backup → Local Storage**
 
-Backup считается рабочим только после успешного восстановления и проверки данных.
+Настроен ежедневный backup через systemd timer (03:15 UTC), проверка архива и SHA-256. Восстановление проверено на отдельной тестовой базе с совпадением количества записей в шести таблицах. Копии пока хранятся на том же сервере; удалённое хранение ещё не настроено.
 
 ---
 
