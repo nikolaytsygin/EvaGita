@@ -86,6 +86,23 @@ and the restored database for all six tables:
 Matching row counts validate table-level counts, but do not prove byte-for-byte
 identity of all data.
 
+### Controlled recovery-time measurement
+
+On 2026-10-15, a controlled test downloaded the 14,642-byte archive
+`evagita-20261015T141607Z.dump` from Yandex Object Storage, verified its SHA-256,
+created `evagita_rto_test_20261015`, restored the archive, and compared exact row
+counts for six tables against production.
+
+- Result: successful
+- Measured elapsed time: **2.617 seconds**
+- Measurement scope: cloud download, checksum verification, test database creation,
+  restore, and exact row-count verification
+- Test database: `evagita_rto_test_20261015`
+
+This is a controlled restore-procedure measurement, not a full production RTO.
+Incident detection, diagnosis, application recovery, and user-facing validation
+were outside the measurement scope. RPO has not been measured.
+
 For future restore tests, first ensure the chosen test database does not already
 exist. Do not drop or overwrite a database to make room for a test.
 
@@ -128,7 +145,7 @@ actual incident before execution.
 ## Known gaps
 
 - Local restore verification was performed on the same server as production.
-- Recovery time objective (RTO) and recovery point objective (RPO) have not been measured.
+- Recovery point objective (RPO) has not been measured; full production RTO has not been measured (only a controlled restore procedure was timed).
 - Disaster recovery and production failure scenarios still require testing.
 - Monitoring and alerting for backup failures are not configured as part of this
   backup setup.
