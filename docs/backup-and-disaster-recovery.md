@@ -60,6 +60,44 @@ downloaded archive's checksum. Check the latest service logs:
 Look for `Remote backup uploaded and SHA-256 verified.` and confirm the service
 result is successful.
 
+## Local backup health-check
+
+The health-check is separate from the backup creation script and runs hourly
+through systemd:
+
+- Script: `/usr/local/sbin/evagita-backup-healthcheck.sh`
+- Service: `evagita-backup-healthcheck.service`
+- Timer: `evagita-backup-healthcheck.timer`
+- Schedule: hourly
+- Maximum accepted local archive age: 26 hours
+- Log identifier: `evagita-backup-healthcheck`
+
+The check verifies that a local archive exists, is non-empty, has a non-empty
+`.sha256` sidecar, and is no older than 26 hours. It also inspects the last
+recorded result and exit status of `evagita-backup.service`. Detected problems
+are written to the systemd journal and the health-check exits with a non-zero
+status.
+
+Check the timer and latest service result:
+
+    systemctl status evagita-backup-healthcheck.timer --no-pager
+    systemctl show evagita-backup-healthcheck.service -p Result -p ExecMainStatus
+    systemctl list-timers evagita-backup-healthcheck.timer --all --no-pager
+
+Inspect health-check messages and backup errors:
+
+    journalctl -t evagita-backup-healthcheck --since "24 hours ago" --no-pager
+    journalctl -u evagita-backup.service --since "7 days ago" --no-pager -p err
+
+Run a one-time check manually:
+
+    /usr/local/sbin/evagita-backup-healthcheck.sh
+
+The current health-check does not recalculate the archive checksum, download or
+check the remote archive on every hourly run, send external notifications, or
+restore the database automatically. Its service result describes the most
+recent health-check execution; review the journal for earlier results.
+
 ## Restore verification
 
 A successful `pg_restore --list` confirms that PostgreSQL can read the archive,

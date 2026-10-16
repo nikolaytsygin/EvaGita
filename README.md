@@ -380,6 +380,21 @@ EvaGita должна поддерживать проверяемые сцена�
 
 ---
 
+## Backup health-check
+
+A local health-check runs hourly through
+`evagita-backup-healthcheck.timer` and
+`evagita-backup-healthcheck.service`. It checks for a non-empty local PostgreSQL
+archive, a non-empty SHA-256 sidecar, an archive age of no more than 26 hours,
+and the last recorded backup service result.
+
+Results are written to the systemd journal under
+`evagita-backup-healthcheck`. This is local monitoring only: it does not send
+external notifications, check remote Object Storage on every hourly run, or
+restore the database automatically. See
+[Backup and Disaster Recovery](docs/backup-and-disaster-recovery.md)
+for operating and troubleshooting commands.
+
 ## Backup and Disaster Recovery
 
 Текущий процесс резервного копирования:
