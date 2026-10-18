@@ -54,6 +54,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/projects/**").authenticated()
                         .requestMatchers("/api/tags/**").authenticated()
                         .requestMatchers("/api/notifications/**").authenticated()
+                        .requestMatchers("/api/dashboard/**").authenticated()
                         .anyRequest().permitAll()
                 )
                 .addFilterBefore(

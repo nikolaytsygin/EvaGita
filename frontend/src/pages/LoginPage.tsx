@@ -30,12 +30,26 @@ export default function LoginPage() {
   return (
     <main className="auth-page">
       <div className="auth-card">
-        <h1>EvaGita</h1>
-        <h2>Login</h2>
+        <div className="auth-brand">
+          <div className="auth-portrait-wrap">
+            <img
+              className="auth-brand-icon"
+              src="/branding/portrait/app-icon-192.png"
+              alt=""
+              aria-hidden="true"
+            />
+          </div>
+          <h1 className="auth-wordmark" aria-label="EvaGita">
+            <span className="auth-wordmark-eva">Eva</span><span className="auth-wordmark-gita">Gita</span>
+          </h1>
+          <p className="auth-tagline">ПЛАНЫ <span>·</span> ПРОЕКТЫ <span>·</span> ВДОХНОВЕНИЕ</p>
+        </div>
+        <h2>С возвращением</h2>
+        <p className="auth-intro">Войди в свой аккаунт, чтобы продолжить.</p>
 
         <form onSubmit={handleSubmit}>
           <label>
-            Email
+            Электронная почта
             <input
               type="email"
               value={email}
@@ -45,7 +59,7 @@ export default function LoginPage() {
           </label>
 
           <label>
-            Password
+            Пароль
             <input
               type="password"
               value={password}
@@ -54,16 +68,16 @@ export default function LoginPage() {
             />
           </label>
 
-          {error && <p className="form-error">{error}</p>}
+          {error && <p className="form-error" role="alert">Не удалось войти. Проверь почту и пароль.</p>}
 
           <button type="submit" disabled={loading}>
-            {loading ? 'Logging in...' : 'Login'}
+            {loading ? 'Входим…' : 'Войти'}
           </button>
         </form>
 
         <p>
-          Don't have an account?{' '}
-          <Link to="/register">Register</Link>
+          Впервые здесь?{' '}
+          <Link to="/register">Создать аккаунт</Link>
         </p>
       </div>
     </main>

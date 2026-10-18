@@ -32,6 +32,16 @@ export default function AppLayout() {
   return (
     <>
       <nav className="main-nav">
+        <NavLink to="/dashboard" className="brand-link" aria-label="EvaGita — Dashboard">
+          <img
+            className="brand-icon"
+            src="/branding/portrait/app-icon-192.png"
+            alt=""
+            aria-hidden="true"
+          />
+          <span>EvaGita</span>
+        </NavLink>
+
         <div className="nav-links">
           <NavLink to="/dashboard" className={navClass}>
             Dashboard

@@ -11,7 +11,7 @@ client.interceptors.request.use((config) => {
   const token = localStorage.getItem('evagita_token')
 
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`
+    config.headers['X-EvaGita-Authorization'] = `Bearer ${token}`
   }
 
   return config

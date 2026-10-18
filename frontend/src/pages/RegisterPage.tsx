@@ -31,12 +31,26 @@ export default function RegisterPage() {
   return (
     <main className="auth-page">
       <div className="auth-card">
-        <h1>EvaGita</h1>
-        <h2>Create account</h2>
+        <div className="auth-brand">
+          <div className="auth-portrait-wrap">
+            <img
+              className="auth-brand-icon"
+              src="/branding/portrait/app-icon-192.png"
+              alt=""
+              aria-hidden="true"
+            />
+          </div>
+          <h1 className="auth-wordmark" aria-label="EvaGita">
+            <span className="auth-wordmark-eva">Eva</span><span className="auth-wordmark-gita">Gita</span>
+          </h1>
+          <p className="auth-tagline">ПЛАНЫ <span>·</span> ПРОЕКТЫ <span>·</span> ВДОХНОВЕНИЕ</p>
+        </div>
+        <h2>Создай своё пространство</h2>
+        <p className="auth-intro">Всего несколько шагов — и можно планировать.</p>
 
         <form onSubmit={handleSubmit}>
           <label>
-            Username
+            Имя пользователя
             <input
               type="text"
               value={username}
@@ -46,7 +60,7 @@ export default function RegisterPage() {
           </label>
 
           <label>
-            Email
+            Электронная почта
             <input
               type="email"
               value={email}
@@ -56,7 +70,7 @@ export default function RegisterPage() {
           </label>
 
           <label>
-            Password
+            Пароль
             <input
               type="password"
               value={password}
@@ -65,16 +79,16 @@ export default function RegisterPage() {
             />
           </label>
 
-          {error && <p className="form-error">{error}</p>}
+          {error && <p className="form-error" role="alert">Не удалось создать аккаунт. Проверь данные и попробуй ещё раз.</p>}
 
           <button type="submit" disabled={loading}>
-            {loading ? 'Creating account...' : 'Register'}
+            {loading ? 'Создаём аккаунт…' : 'Создать аккаунт →'}
           </button>
         </form>
 
         <p>
-          Already have an account?{' '}
-          <Link to="/login">Login</Link>
+          Уже есть аккаунт?{' '}
+          <Link to="/login">Войти</Link>
         </p>
       </div>
     </main>
