@@ -8,73 +8,32 @@ export default function AppLayout() {
   const navigate = useNavigate()
   const [unreadCount, setUnreadCount] = useState(0)
 
-  const loadUnreadCount = async () => {
-    try {
-      const count = await getUnreadNotificationsCount()
-      setUnreadCount(count)
-    } catch {
-      setUnreadCount(0)
-    }
-  }
-
   useEffect(() => {
-    void loadUnreadCount()
+    void getUnreadNotificationsCount().then(setUnreadCount).catch(() => setUnreadCount(0))
   }, [])
 
-  const handleLogout = () => {
-    logout()
-    navigate('/login')
-  }
-
-  const navClass = ({ isActive }: { isActive: boolean }) =>
-    isActive ? 'active' : ''
-
   return (
-    <>
+    <div className="app-shell">
       <nav className="main-nav">
-        <NavLink to="/dashboard" className="brand-link" aria-label="EvaGita — Dashboard">
-          <img
-            className="brand-icon"
-            src="/branding/portrait/app-icon-192.png"
-            alt=""
-            aria-hidden="true"
-          />
+        <NavLink to="/dashboard" className="brand-link">
+          <img className="brand-icon" src="/branding/portrait/app-icon-192.png" alt="" aria-hidden="true" />
           <span>EvaGita</span>
         </NavLink>
-
         <div className="nav-links">
-          <NavLink to="/dashboard" className={navClass}>
-            Dashboard
-          </NavLink>
-
-          <NavLink to="/tasks" className={navClass}>
-            Tasks
-          </NavLink>
-
-          <NavLink to="/projects" className={navClass}>
-            Projects
-          </NavLink>
-
-          <NavLink to="/tags" className={navClass}>
-            Tags
-          </NavLink>
-
-          <NavLink to="/notifications" className={navClass}>
-            Notifications
-            {unreadCount > 0 && (
-              <span className="notification-badge">
-                {unreadCount}
-              </span>
-            )}
+          <NavLink to="/dashboard">Обзор</NavLink>
+          <NavLink to="/tasks">Задачи</NavLink>
+          <NavLink to="/projects">Проекты</NavLink>
+          <NavLink to="/tags">Теги</NavLink>
+          <NavLink to="/notifications">
+            Уведомления{unreadCount > 0 && <span className="notification-badge">{unreadCount}</span>}
           </NavLink>
         </div>
-
-        <button type="button" onClick={handleLogout}>
-          Logout
-        </button>
+        <div className="nav-actions">
+          <input className="nav-search" type="search" placeholder="Поиск задач" aria-label="Поиск задач" />
+          <button type="button" onClick={() => { logout(); navigate('/login') }}>Профиль⌄</button>
+        </div>
       </nav>
-
       <Outlet />
-    </>
+    </div>
   )
 }
