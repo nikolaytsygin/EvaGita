@@ -103,10 +103,7 @@ public class AuthController {
         }
 
         loginRateLimiter.recordSuccess(email, clientIp);
-        String token = jwtService.generateToken(
-                user.getUsername(),
-                user.getTokenVersion()
-        );
+        String token = jwtService.generateToken(user);
 
         return ResponseEntity.ok(
                 Map.of(

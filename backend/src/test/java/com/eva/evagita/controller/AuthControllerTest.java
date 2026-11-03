@@ -18,6 +18,7 @@ import org.springframework.security.test.context.support.WithMockUser;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -63,7 +64,7 @@ class AuthControllerTest {
         when(authenticationService.authenticate("test@example.com", "password"))
                 .thenReturn(Optional.of(user));
 
-        when(jwtService.generateToken("testuser", 0L))
+        when(jwtService.generateToken(user))
                 .thenReturn("valid.jwt.token");
 
         mockMvc.perform(post("/api/auth/login")
@@ -82,7 +83,7 @@ class AuthControllerTest {
 
         verify(authenticationService)
                 .authenticate("test@example.com", "password");
-        verify(jwtService).generateToken("testuser", 0L);
+        verify(jwtService).generateToken(user);
     }
 
     @Test
@@ -102,7 +103,7 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.message")
                         .value("Invalid email or password"));
 
-        verify(jwtService, never()).generateToken(anyString());
+        verify(jwtService, never()).generateToken(any(User.class));
         verify(loginRateLimiter).recordFailure("test@example.com", "127.0.0.1");
     }
 
@@ -123,7 +124,7 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.message")
                         .value("Invalid email or password"));
 
-        verify(jwtService, never()).generateToken(anyString());
+        verify(jwtService, never()).generateToken(any(User.class));
     }
 
     @Test
@@ -134,7 +135,7 @@ class AuthControllerTest {
         when(user.getEmail()).thenReturn("legacy@example.com");
         when(authenticationService.authenticate("legacy@example.com", "legacy-password"))
                 .thenReturn(Optional.of(user));
-        when(jwtService.generateToken("legacy-user", 0L))
+        when(jwtService.generateToken(user))
                 .thenReturn("valid.jwt.token");
 
         mockMvc.perform(post("/api/auth/login")
@@ -239,7 +240,7 @@ class AuthControllerTest {
         when(user.getUsername()).thenReturn("testuser");
         when(user.getEmail()).thenReturn("test@example.com");
         when(user.getId()).thenReturn(1L);
-        when(jwtService.generateToken("testuser", 0L)).thenReturn("token");
+        when(jwtService.generateToken(user)).thenReturn("token");
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(APPLICATION_JSON)

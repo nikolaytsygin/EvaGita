@@ -53,6 +53,7 @@ class JwtAuthenticationIntegrationTest extends PostgresIntegrationTest {
     private TagRepository tagRepository;
 
     private MockMvc mockMvc;
+    private User testUser;
 
     @BeforeEach
     void setUp() {
@@ -71,7 +72,7 @@ class JwtAuthenticationIntegrationTest extends PostgresIntegrationTest {
         tagRepository.flush();
         userRepository.deleteAll();
         userRepository.flush();
-        userRepository.save(new User(
+        testUser = userRepository.save(new User(
                 "header-test-user",
                 "header-test@example.com",
                 "test-password"
@@ -109,7 +110,7 @@ class JwtAuthenticationIntegrationTest extends PostgresIntegrationTest {
 
     @Test
     void shouldAuthenticateAuthorizationBearerHeader() throws Exception {
-        String token = jwtService.generateToken("header-test-user");
+        String token = jwtService.generateToken(testUser);
 
         mockMvc.perform(get("/api/users/me")
                         .header("Authorization", "Bearer " + token))
@@ -118,7 +119,7 @@ class JwtAuthenticationIntegrationTest extends PostgresIntegrationTest {
 
     @Test
     void shouldRejectLegacyCustomAuthorizationHeader() throws Exception {
-        String token = jwtService.generateToken("header-test-user");
+        String token = jwtService.generateToken(testUser);
 
         mockMvc.perform(get("/api/users/me")
                         .header("X-EvaGita-Authorization", "Bearer " + token))

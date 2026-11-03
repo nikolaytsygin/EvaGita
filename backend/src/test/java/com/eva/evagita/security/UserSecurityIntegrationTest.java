@@ -84,7 +84,7 @@ class UserSecurityIntegrationTest extends PostgresIntegrationTest {
                 "user-b", "user-b@example.com",
                 passwordHashService.encodeIfNeeded("password-b")
         ));
-        userAToken = jwtService.generateToken(userA.getUsername());
+        userAToken = jwtService.generateToken(userA);
     }
 
     @Test

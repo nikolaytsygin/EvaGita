@@ -2,6 +2,7 @@ package com.eva.evagita.security;
 
 import com.eva.evagita.model.User;
 import com.eva.evagita.repository.UserRepository;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -48,32 +49,44 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
+        String username;
+        long tokenVersion;
+        Long userId;
         try {
-            String username = jwtService.extractUsername(token);
-            User user = userRepository.findByUsername(username).orElse(null);
-
-            if (user == null
-                    || user.getTokenVersion() != jwtService.extractTokenVersion(token)) {
-                filterChain.doFilter(request, response);
-                return;
-            }
-
-            UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(
-                            username,
-                            null,
-                            Collections.emptyList()
-                    );
-
-            authentication.setDetails(
-                    new WebAuthenticationDetailsSource().buildDetails(request)
-            );
-
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-        } catch (RuntimeException exception) {
+            username = jwtService.extractUsername(token);
+            tokenVersion = jwtService.extractTokenVersion(token);
+            userId = jwtService.extractUserId(token);
+        } catch (JwtException | IllegalArgumentException exception) {
             filterChain.doFilter(request, response);
             return;
         }
+
+        if (userId == null) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        User user = userRepository.findById(userId).orElse(null);
+
+        if (user == null
+                || !user.getUsername().equals(username)
+                || user.getTokenVersion() != tokenVersion) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken(
+                        username,
+                        null,
+                        Collections.emptyList()
+                );
+
+        authentication.setDetails(
+                new WebAuthenticationDetailsSource().buildDetails(request)
+        );
+
+        SecurityContextHolder.getContext().setAuthentication(authentication);
 
         filterChain.doFilter(request, response);
     }

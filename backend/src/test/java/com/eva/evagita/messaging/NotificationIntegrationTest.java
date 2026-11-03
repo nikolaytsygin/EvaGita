@@ -82,7 +82,7 @@ class NotificationIntegrationTest extends PostgresIntegrationTest {
                 )
         );
 
-        testUserToken = jwtService.generateToken(testUser.getUsername());
+        testUserToken = jwtService.generateToken(testUser);
     }
 
     @Test

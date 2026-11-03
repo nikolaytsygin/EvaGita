@@ -1,5 +1,6 @@
 package com.eva.evagita.security;
 
+import com.eva.evagita.model.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -8,6 +9,8 @@ import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.Date;
 
 @Service
@@ -24,17 +27,24 @@ public class JwtService {
         this.expiration = expiration;
     }
 
-    public String generateToken(String username) {
-        return generateToken(username, 0L);
-    }
+    public String generateToken(User user) {
+        if (user == null) {
+            throw new IllegalArgumentException("User must not be null");
+        }
+        if (user.getId() == null || user.getId() <= 0) {
+            throw new IllegalArgumentException("User must have a positive database id");
+        }
+        if (user.getUsername() == null || user.getUsername().isBlank()) {
+            throw new IllegalArgumentException("User must have a non-blank username");
+        }
 
-    public String generateToken(String username, long tokenVersion) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + expiration);
 
         return Jwts.builder()
-                .subject(username)
-                .claim("token_version", tokenVersion)
+                .subject(user.getUsername())
+                .claim("user_id", user.getId())
+                .claim("token_version", user.getTokenVersion())
                 .issuedAt(now)
                 .expiration(expiryDate)
                 .signWith(secretKey)
@@ -71,6 +81,33 @@ public class JwtService {
             return tokenVersion;
         }
         throw new IllegalArgumentException("Invalid token version");
+    }
+
+    public Long extractUserId(String token) {
+        Object userId = extractAllClaims(token).get("user_id");
+        if (userId == null) {
+            throw new IllegalArgumentException("Missing user id");
+        }
+        if (userId instanceof Number number) {
+            return parsePositiveUserId(number);
+        }
+        throw new IllegalArgumentException("Invalid user id");
+    }
+
+    private long parsePositiveUserId(Number number) {
+        final BigInteger integerValue;
+        try {
+            integerValue = new BigDecimal(number.toString()).toBigIntegerExact();
+        } catch (NumberFormatException | ArithmeticException exception) {
+            throw new IllegalArgumentException("Invalid user id", exception);
+        }
+
+        if (integerValue.signum() <= 0
+                || integerValue.compareTo(BigInteger.valueOf(Long.MAX_VALUE)) > 0) {
+            throw new IllegalArgumentException("Invalid user id");
+        }
+
+        return integerValue.longValueExact();
     }
 
     private Claims extractAllClaims(String token) {

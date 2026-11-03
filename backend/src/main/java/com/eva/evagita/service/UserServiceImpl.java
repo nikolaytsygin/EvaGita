@@ -44,12 +44,21 @@ public class UserServiceImpl implements UserService {
             String newUsername,
             String email
     ) {
-        User existingUser = getUserByUsername(currentUsername);
+        User existingUser = userRepository.findByUsernameForUpdate(currentUsername)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("User not found with username: " + currentUsername));
 
         validateProfile(newUsername, email);
 
+        String normalizedEmail = LoginRateLimiter.normalizeEmail(email);
+        boolean identityChanged = !existingUser.getUsername().equals(newUsername)
+                || !existingUser.getEmail().equals(normalizedEmail);
+
         existingUser.setUsername(newUsername);
-        existingUser.setEmail(LoginRateLimiter.normalizeEmail(email));
+        existingUser.setEmail(normalizedEmail);
+        if (identityChanged) {
+            existingUser.revokeTokens();
+        }
 
         return userRepository.save(existingUser);
     }
@@ -109,11 +118,18 @@ public class UserServiceImpl implements UserService {
 
         validateUser(user);
 
+        String normalizedEmail = LoginRateLimiter.normalizeEmail(user.getEmail());
+        String encodedPassword = passwordHashService.encodeIfNeeded(user.getPassword());
+        boolean changed = !existingUser.getUsername().equals(user.getUsername())
+                || !existingUser.getEmail().equals(normalizedEmail)
+                || !existingUser.getPassword().equals(encodedPassword);
+
         existingUser.setUsername(user.getUsername());
-        existingUser.setEmail(user.getEmail());
-        existingUser.setPassword(
-                passwordHashService.encodeIfNeeded(user.getPassword())
-        );
+        existingUser.setEmail(normalizedEmail);
+        existingUser.setPassword(encodedPassword);
+        if (changed) {
+            existingUser.revokeTokens();
+        }
 
         return userRepository.save(existingUser);
     }

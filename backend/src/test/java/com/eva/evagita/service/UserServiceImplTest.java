@@ -7,6 +7,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -78,7 +79,7 @@ class UserServiceImplTest {
     @Test
     void shouldUpdateProfileForPrincipalUsername() {
         User existing = new User("user-a", "a@example.com", "hashed-password");
-        when(userRepository.findByUsername("user-a"))
+        when(userRepository.findByUsernameForUpdate("user-a"))
                 .thenReturn(java.util.Optional.of(existing));
         when(userRepository.save(existing)).thenReturn(existing);
 
@@ -87,7 +88,29 @@ class UserServiceImplTest {
         assertThat(existing.getUsername()).isEqualTo("updated-user");
         assertThat(existing.getEmail()).isEqualTo("updated@example.com");
         assertThat(existing.getPassword()).isEqualTo("hashed-password");
+        assertThat(existing.getTokenVersion()).isEqualTo(1L);
         verify(userRepository).save(existing);
+    }
+
+    @Test
+    void shouldKeepTokenVersionWhenProfileDoesNotChange() {
+        User existing = new User("user-a", "a@example.com", "hashed-password");
+        when(userRepository.findByUsernameForUpdate("user-a"))
+                .thenReturn(java.util.Optional.of(existing));
+        when(userRepository.save(existing)).thenReturn(existing);
+
+        userService.updateCurrentUser("user-a", "user-a", "a@example.com");
+
+        assertThat(existing.getTokenVersion()).isZero();
+        verify(userRepository).save(existing);
+    }
+
+    @Test
+    void shouldRunProfileUpdateInsideTransaction() throws NoSuchMethodException {
+        assertThat(UserServiceImpl.class
+                .getMethod("updateCurrentUser", String.class, String.class, String.class)
+                .isAnnotationPresent(Transactional.class))
+                .isTrue();
     }
 
     @Test

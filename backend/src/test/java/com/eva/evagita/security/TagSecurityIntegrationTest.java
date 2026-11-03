@@ -91,8 +91,8 @@ class TagSecurityIntegrationTest extends PostgresIntegrationTest {
                 "password"
         ));
 
-        testUserToken = jwtService.generateToken(testUser.getUsername());
-        anotherUserToken = jwtService.generateToken(anotherUser.getUsername());
+        testUserToken = jwtService.generateToken(testUser);
+        anotherUserToken = jwtService.generateToken(anotherUser);
     }
 
     @Test
