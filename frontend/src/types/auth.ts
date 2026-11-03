@@ -7,6 +7,7 @@ export interface User {
 export interface LoginRequest {
   email: string
   password: string
+  captchaToken?: string
 }
 
 export interface RegisterRequest {
@@ -23,7 +24,7 @@ export interface AuthContextValue {
   user: User | null
   token: string | null
   isAuthenticated: boolean
-  login: (email: string, password: string) => Promise<void>
+  login: (email: string, password: string, captchaToken?: string) => Promise<void>
   register: (
     username: string,
     email: string,

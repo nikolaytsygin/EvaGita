@@ -196,6 +196,55 @@ EvaGita — task management platform в стиле современных produc
 
 Структура репозитория будет постепенно развиваться по мере реализации проекта.
 
+## Local SmartCaptcha configuration
+
+Локальный backend получает настройки SmartCaptcha через environment variables.
+Server Key предназначен только для backend и не должен попадать во frontend,
+Vite-конфигурацию, Dockerfile или Git.
+
+Для локального запуска frontend создай файл
+`frontend/.env.local` со следующим содержимым:
+
+```dotenv
+VITE_SMARTCAPTCHA_CLIENT_KEY=your-public-client-key
+```
+
+Client Key является публичным и используется Vite во время сборки. Server Key
+храни во внешнем локальном файле, например
+`/home/oolonnad/.config/evagita/smartcaptcha.env`, с правами `0600`. Не создавай
+этот файл в репозитории.
+
+Для backend/Compose передай как минимум следующие переменные:
+
+```dotenv
+JWT_SECRET=your-local-jwt-secret
+SMARTCAPTCHA_ENABLED=false
+SMARTCAPTCHA_SERVER_KEY=your-server-key
+SMARTCAPTCHA_ALLOWED_HOSTS=localhost
+SMARTCAPTCHA_EMAIL_SOFT_THRESHOLD=3
+SMARTCAPTCHA_TIMEOUT_MS=2000
+```
+
+При `SMARTCAPTCHA_ENABLED=false` backend работает без внешней проверки CAPTCHA.
+Для включения защиты установи `SMARTCAPTCHA_ENABLED=true` и укажи Server Key;
+если ключ отсутствует, backend завершит запуск с ошибкой конфигурации.
+
+Локальный Compose запускает PostgreSQL, RabbitMQ и backend:
+
+```bash
+docker compose --env-file /path/to/local-secrets.env up --build backend
+```
+
+Frontend запускается отдельно через Vite и использует proxy на backend:
+
+```bash
+cd frontend
+npm run dev
+```
+
+Не передавай `VITE_SMARTCAPTCHA_CLIENT_KEY` backend и никогда не помещай
+`SMARTCAPTCHA_SERVER_KEY` во frontend env-файлы.
+
 ---
 
 # Development Roadmap

@@ -1,0 +1,31 @@
+package com.eva.evagita.dto;
+
+import jakarta.validation.constraints.NotBlank;
+
+public class ChangePasswordRequest {
+
+    @NotBlank(message = "Current password must not be empty")
+    private String currentPassword;
+
+    @NotBlank(message = "New password must not be empty")
+    private String newPassword;
+
+    public ChangePasswordRequest() {
+    }
+
+    public String getCurrentPassword() {
+        return currentPassword;
+    }
+
+    public void setCurrentPassword(String currentPassword) {
+        this.currentPassword = currentPassword;
+    }
+
+    public String getNewPassword() {
+        return newPassword;
+    }
+
+    public void setNewPassword(String newPassword) {
+        this.newPassword = newPassword;
+    }
+}

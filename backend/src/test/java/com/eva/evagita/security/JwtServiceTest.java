@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class JwtServiceTest {
@@ -56,5 +57,30 @@ class JwtServiceTest {
         String token = jwtService.generateToken("testuser");
 
         assertTrue(jwtService.isTokenValid(token));
+    }
+
+    @Test
+    void shouldPreserveTokenVersionClaim() {
+        String token = jwtService.generateToken("testuser", 7L);
+
+        assertTrue(jwtService.isTokenValid(token));
+        assertEquals(7L, jwtService.extractTokenVersion(token));
+    }
+
+    @Test
+    void shouldAcceptLegacyTokenWithoutTokenVersionAsVersionZero() {
+        SecretKey key = Keys.hmacShaKeyFor(
+                SECRET.getBytes(StandardCharsets.UTF_8)
+        );
+        Date now = new Date();
+        String legacyToken = Jwts.builder()
+                .subject("testuser")
+                .issuedAt(now)
+                .expiration(new Date(now.getTime() + EXPIRATION))
+                .signWith(key)
+                .compact();
+
+        assertTrue(jwtService.isTokenValid(legacyToken));
+        assertEquals(0L, jwtService.extractTokenVersion(legacyToken));
     }
 }

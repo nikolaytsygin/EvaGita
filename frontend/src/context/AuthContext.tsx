@@ -51,10 +51,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, [token])
 
-  const login = async (email: string, password: string) => {
+  const login = async (
+    email: string,
+    password: string,
+    captchaToken?: string
+  ) => {
     const response = await loginRequest({
       email,
       password,
+      captchaToken,
     })
 
     setUser({

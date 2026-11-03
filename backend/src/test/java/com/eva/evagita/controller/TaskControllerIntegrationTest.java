@@ -82,11 +82,16 @@ class TaskControllerIntegrationTest extends PostgresIntegrationTest {
                 .apply(springSecurity())
                 .build();
 
-        taskRepository.deleteAll();
-        projectRepository.deleteAll();
-        tagRepository.deleteAll();
         notificationRepository.deleteAll();
+        notificationRepository.flush();
+        taskRepository.deleteAll();
+        taskRepository.flush();
+        projectRepository.deleteAll();
+        projectRepository.flush();
+        tagRepository.deleteAll();
+        tagRepository.flush();
         userRepository.deleteAll();
+        userRepository.flush();
 
         testUser = new User(
                 "integration-test-user",

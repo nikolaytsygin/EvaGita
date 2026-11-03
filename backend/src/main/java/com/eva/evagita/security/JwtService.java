@@ -25,11 +25,16 @@ public class JwtService {
     }
 
     public String generateToken(String username) {
+        return generateToken(username, 0L);
+    }
+
+    public String generateToken(String username, long tokenVersion) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + expiration);
 
         return Jwts.builder()
                 .subject(username)
+                .claim("token_version", tokenVersion)
                 .issuedAt(now)
                 .expiration(expiryDate)
                 .signWith(secretKey)
@@ -42,11 +47,30 @@ public class JwtService {
 
     public boolean isTokenValid(String token) {
         try {
-            extractAllClaims(token);
-            return true;
+            Claims claims = extractAllClaims(token);
+            return claims.getSubject() != null
+                    && !claims.getSubject().isBlank()
+                    && claims.getIssuedAt() != null
+                    && claims.getExpiration() != null
+                    && claims.getExpiration().after(claims.getIssuedAt());
         } catch (Exception e) {
             return false;
         }
+    }
+
+    public long extractTokenVersion(String token) {
+        Object version = extractAllClaims(token).get("token_version");
+        if (version == null) {
+            return 0L;
+        }
+        if (version instanceof Number number) {
+            long tokenVersion = number.longValue();
+            if (tokenVersion < 0) {
+                throw new IllegalArgumentException("Invalid token version");
+            }
+            return tokenVersion;
+        }
+        throw new IllegalArgumentException("Invalid token version");
     }
 
     private Claims extractAllClaims(String token) {

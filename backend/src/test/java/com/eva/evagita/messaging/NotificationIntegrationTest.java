@@ -5,6 +5,8 @@ import com.eva.evagita.model.Notification;
 import com.eva.evagita.model.NotificationType;
 import com.eva.evagita.model.User;
 import com.eva.evagita.repository.NotificationRepository;
+import com.eva.evagita.repository.ProjectRepository;
+import com.eva.evagita.repository.TagRepository;
 import com.eva.evagita.repository.TaskRepository;
 import com.eva.evagita.repository.UserRepository;
 import com.eva.evagita.security.JwtService;
@@ -37,6 +39,12 @@ class NotificationIntegrationTest extends PostgresIntegrationTest {
     private TaskRepository taskRepository;
 
     @Autowired
+    private ProjectRepository projectRepository;
+
+    @Autowired
+    private TagRepository tagRepository;
+
+    @Autowired
     private UserRepository userRepository;
 
     @Autowired
@@ -56,8 +64,15 @@ class NotificationIntegrationTest extends PostgresIntegrationTest {
                 .build();
 
         notificationRepository.deleteAll();
+        notificationRepository.flush();
         taskRepository.deleteAll();
+        taskRepository.flush();
+        projectRepository.deleteAll();
+        projectRepository.flush();
+        tagRepository.deleteAll();
+        tagRepository.flush();
         userRepository.deleteAll();
+        userRepository.flush();
 
         testUser = userRepository.saveAndFlush(
                 new User(

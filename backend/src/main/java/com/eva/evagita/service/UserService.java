@@ -8,6 +8,12 @@ public interface UserService {
 
     User createUser(User user);
 
+    User getCurrentUser(String username);
+
+    User updateCurrentUser(String currentUsername, String newUsername, String email);
+
+    void changePassword(String username, String currentPassword, String newPassword);
+
     List<User> getAllUsers();
 
     User getUserById(Long id);

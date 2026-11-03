@@ -3,7 +3,10 @@ package com.eva.evagita.service;
 import com.eva.evagita.exception.UserNotFoundException;
 import com.eva.evagita.model.User;
 import com.eva.evagita.repository.UserRepository;
+import com.eva.evagita.security.PasswordHashService;
+import com.eva.evagita.security.LoginRateLimiter;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -11,15 +14,68 @@ import java.util.List;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+    private final PasswordHashService passwordHashService;
 
-    public UserServiceImpl(UserRepository userRepository) {
+    public UserServiceImpl(
+            UserRepository userRepository,
+            PasswordHashService passwordHashService
+    ) {
         this.userRepository = userRepository;
+        this.passwordHashService = passwordHashService;
     }
 
     @Override
     public User createUser(User user) {
         validateUser(user);
+        user.setEmail(LoginRateLimiter.normalizeEmail(user.getEmail()));
+        user.setPassword(passwordHashService.encodeIfNeeded(user.getPassword()));
         return userRepository.save(user);
+    }
+
+    @Override
+    public User getCurrentUser(String username) {
+        return getUserByUsername(username);
+    }
+
+    @Override
+    @Transactional
+    public User updateCurrentUser(
+            String currentUsername,
+            String newUsername,
+            String email
+    ) {
+        User existingUser = getUserByUsername(currentUsername);
+
+        validateProfile(newUsername, email);
+
+        existingUser.setUsername(newUsername);
+        existingUser.setEmail(LoginRateLimiter.normalizeEmail(email));
+
+        return userRepository.save(existingUser);
+    }
+
+    @Override
+    @Transactional
+    public void changePassword(
+            String username,
+            String currentPassword,
+            String newPassword
+    ) {
+        User existingUser = userRepository.findByUsernameForUpdate(username)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("User not found with username: " + username));
+
+        if (!passwordHashService.matches(currentPassword, existingUser.getPassword())) {
+            throw new IllegalArgumentException("Current password is incorrect");
+        }
+
+        if (newPassword == null || newPassword.isBlank()) {
+            throw new IllegalArgumentException("New password must not be empty");
+        }
+
+        existingUser.setPassword(passwordHashService.encodeIfNeeded(newPassword));
+        existingUser.revokeTokens();
+        userRepository.save(existingUser);
     }
 
     @Override
@@ -55,7 +111,9 @@ public class UserServiceImpl implements UserService {
 
         existingUser.setUsername(user.getUsername());
         existingUser.setEmail(user.getEmail());
-        existingUser.setPassword(user.getPassword());
+        existingUser.setPassword(
+                passwordHashService.encodeIfNeeded(user.getPassword())
+        );
 
         return userRepository.save(existingUser);
     }
@@ -77,6 +135,16 @@ public class UserServiceImpl implements UserService {
 
         if (user.getPassword() == null || user.getPassword().isBlank()) {
             throw new IllegalArgumentException("Password must not be empty");
+        }
+    }
+
+    private void validateProfile(String username, String email) {
+        if (username == null || username.isBlank()) {
+            throw new IllegalArgumentException("Username must not be empty");
+        }
+
+        if (email == null || email.isBlank()) {
+            throw new IllegalArgumentException("Email must not be empty");
         }
     }
 }

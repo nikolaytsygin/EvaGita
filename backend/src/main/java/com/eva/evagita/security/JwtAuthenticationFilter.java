@@ -1,5 +1,7 @@
 package com.eva.evagita.security;
 
+import com.eva.evagita.model.User;
+import com.eva.evagita.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -15,9 +17,14 @@ import java.util.Collections;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
+    private final UserRepository userRepository;
 
-    public JwtAuthenticationFilter(JwtService jwtService) {
+    public JwtAuthenticationFilter(
+            JwtService jwtService,
+            UserRepository userRepository
+    ) {
         this.jwtService = jwtService;
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -41,20 +48,32 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        String username = jwtService.extractUsername(token);
+        try {
+            String username = jwtService.extractUsername(token);
+            User user = userRepository.findByUsername(username).orElse(null);
 
-        UsernamePasswordAuthenticationToken authentication =
-                new UsernamePasswordAuthenticationToken(
-                        username,
-                        null,
-                        Collections.emptyList()
-                );
+            if (user == null
+                    || user.getTokenVersion() != jwtService.extractTokenVersion(token)) {
+                filterChain.doFilter(request, response);
+                return;
+            }
 
-        authentication.setDetails(
-                new WebAuthenticationDetailsSource().buildDetails(request)
-        );
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(
+                            username,
+                            null,
+                            Collections.emptyList()
+                    );
 
-        SecurityContextHolder.getContext().setAuthentication(authentication);
+            authentication.setDetails(
+                    new WebAuthenticationDetailsSource().buildDetails(request)
+            );
+
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+        } catch (RuntimeException exception) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         filterChain.doFilter(request, response);
     }

@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { LoginApiError } from '../api/auth'
+import SmartCaptchaWidget from '../components/SmartCaptchaWidget'
 
 export default function LoginPage() {
   const { login } = useAuth()
@@ -11,17 +13,54 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [captchaRequired, setCaptchaRequired] = useState(false)
+  const [captchaToken, setCaptchaToken] = useState<string | undefined>()
+  const [captchaResetKey, setCaptchaResetKey] = useState(0)
+  const [captchaError, setCaptchaError] = useState('')
+
+  const handleCaptchaToken = useCallback((token: string) => {
+    setCaptchaError('')
+    setCaptchaToken(token)
+  }, [])
+
+  const handleCaptchaError = useCallback((message: string) => {
+    setCaptchaToken(undefined)
+    setCaptchaError(message)
+    setCaptchaResetKey((value) => value + 1)
+  }, [])
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setError('')
     setLoading(true)
+    const submittedCaptchaToken = Boolean(captchaToken)
 
     try {
-      await login(email, password)
+      await login(email, password, captchaToken)
       navigate('/dashboard')
-    } catch {
-      setError('Invalid email or password')
+    } catch (caughtError) {
+      if (submittedCaptchaToken) {
+        setCaptchaToken(undefined)
+        setCaptchaResetKey((value) => value + 1)
+      }
+      if (caughtError instanceof LoginApiError && caughtError.status === 428) {
+        setCaptchaRequired(true)
+        if (!submittedCaptchaToken) {
+          setCaptchaToken(undefined)
+          setCaptchaResetKey((value) => value + 1)
+        }
+        setError('Для продолжения пройди дополнительную проверку.')
+      } else if (caughtError instanceof LoginApiError && caughtError.code === 'CAPTCHA_INVALID') {
+        if (!submittedCaptchaToken) {
+          setCaptchaToken(undefined)
+          setCaptchaResetKey((value) => value + 1)
+        }
+        setError('Проверка SmartCaptcha не пройдена. Попробуй ещё раз.')
+      } else if (caughtError instanceof LoginApiError && caughtError.code === 'CAPTCHA_UNAVAILABLE') {
+        setError('Проверка временно недоступна. Попробуй позже.')
+      } else {
+        setError('Invalid email or password')
+      }
     } finally {
       setLoading(false)
     }
@@ -57,6 +96,15 @@ export default function LoginPage() {
               required
             />
           </label>
+
+          <SmartCaptchaWidget
+            visible={captchaRequired}
+            resetKey={captchaResetKey}
+            onToken={handleCaptchaToken}
+            onError={handleCaptchaError}
+          />
+
+          {captchaError && <p className="form-error" role="alert">{captchaError}</p>}
 
           <label>
             Пароль

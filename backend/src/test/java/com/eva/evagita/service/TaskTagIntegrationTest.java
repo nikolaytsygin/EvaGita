@@ -8,6 +8,7 @@ import com.eva.evagita.repository.TagRepository;
 import com.eva.evagita.repository.TaskRepository;
 import com.eva.evagita.repository.UserRepository;
 import com.eva.evagita.repository.NotificationRepository;
+import com.eva.evagita.repository.ProjectRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,14 +33,23 @@ class TaskTagIntegrationTest extends PostgresIntegrationTest {
     @Autowired
     private NotificationRepository notificationRepository;
 
+    @Autowired
+    private ProjectRepository projectRepository;
+
     private User testUser;
 
     @BeforeEach
     void setUp() {
         notificationRepository.deleteAll();
+        notificationRepository.flush();
         taskRepository.deleteAll();
+        taskRepository.flush();
+        projectRepository.deleteAll();
+        projectRepository.flush();
         tagRepository.deleteAll();
+        tagRepository.flush();
         userRepository.deleteAll();
+        userRepository.flush();
 
         testUser = userRepository.save(
                 new User(
