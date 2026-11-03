@@ -75,20 +75,47 @@ class JwtServiceTest {
     }
 
     @Test
-    void shouldAcceptLegacyTokenWithoutTokenVersionAsVersionZero() {
-        SecretKey key = Keys.hmacShaKeyFor(
-                SECRET.getBytes(StandardCharsets.UTF_8)
-        );
-        Date now = new Date();
-        String legacyToken = Jwts.builder()
-                .subject("testuser")
-                .issuedAt(now)
-                .expiration(new Date(now.getTime() + EXPIRATION))
-                .signWith(key)
-                .compact();
+    void shouldRejectTokenWithoutTokenVersion() {
+        String token = signedTokenWithoutTokenVersion();
 
-        assertTrue(jwtService.isTokenValid(legacyToken));
-        assertEquals(0L, jwtService.extractTokenVersion(legacyToken));
+        assertThrows(IllegalArgumentException.class,
+                () -> jwtService.extractTokenVersion(token));
+    }
+
+    @Test
+    void shouldRejectNullTokenVersion() {
+        assertThrows(IllegalArgumentException.class,
+                () -> jwtService.extractTokenVersion(signedTokenWithTokenVersion(null)));
+    }
+
+    @Test
+    void shouldAcceptZeroTokenVersion() {
+        assertEquals(0L, jwtService.extractTokenVersion(signedTokenWithTokenVersion(0)));
+    }
+
+    @Test
+    void shouldRejectNegativeTokenVersion() {
+        assertThrows(IllegalArgumentException.class,
+                () -> jwtService.extractTokenVersion(signedTokenWithTokenVersion(-1)));
+    }
+
+    @Test
+    void shouldRejectFractionalTokenVersion() {
+        assertThrows(IllegalArgumentException.class,
+                () -> jwtService.extractTokenVersion(signedTokenWithTokenVersion(1.5)));
+    }
+
+    @Test
+    void shouldRejectTokenVersionOutsideLongRange() {
+        assertThrows(IllegalArgumentException.class,
+                () -> jwtService.extractTokenVersion(
+                        signedTokenWithTokenVersion(new BigInteger("9223372036854775808"))));
+    }
+
+    @Test
+    void shouldRejectStringTokenVersion() {
+        assertThrows(IllegalArgumentException.class,
+                () -> jwtService.extractTokenVersion(signedTokenWithTokenVersion("1")));
     }
 
     @Test
@@ -176,6 +203,27 @@ class JwtServiceTest {
     private String signedTokenWithoutUserId() {
         return Jwts.builder()
                 .subject("testuser")
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + EXPIRATION))
+                .signWith(signingKey())
+                .compact();
+    }
+
+    private String signedTokenWithoutTokenVersion() {
+        return Jwts.builder()
+                .subject("testuser")
+                .claim("user_id", 42)
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + EXPIRATION))
+                .signWith(signingKey())
+                .compact();
+    }
+
+    private String signedTokenWithTokenVersion(Object tokenVersion) {
+        return Jwts.builder()
+                .subject("testuser")
+                .claim("user_id", 42)
+                .claim("token_version", tokenVersion)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + EXPIRATION))
                 .signWith(signingKey())

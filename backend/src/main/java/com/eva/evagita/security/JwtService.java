@@ -71,14 +71,10 @@ public class JwtService {
     public long extractTokenVersion(String token) {
         Object version = extractAllClaims(token).get("token_version");
         if (version == null) {
-            return 0L;
+            throw new IllegalArgumentException("Missing token version");
         }
         if (version instanceof Number number) {
-            long tokenVersion = number.longValue();
-            if (tokenVersion < 0) {
-                throw new IllegalArgumentException("Invalid token version");
-            }
-            return tokenVersion;
+            return parseNonNegativeLong(number, "Invalid token version");
         }
         throw new IllegalArgumentException("Invalid token version");
     }
@@ -95,16 +91,24 @@ public class JwtService {
     }
 
     private long parsePositiveUserId(Number number) {
+        long userId = parseNonNegativeLong(number, "Invalid user id");
+        if (userId == 0L) {
+            throw new IllegalArgumentException("Invalid user id");
+        }
+        return userId;
+    }
+
+    private long parseNonNegativeLong(Number number, String errorMessage) {
         final BigInteger integerValue;
         try {
             integerValue = new BigDecimal(number.toString()).toBigIntegerExact();
         } catch (NumberFormatException | ArithmeticException exception) {
-            throw new IllegalArgumentException("Invalid user id", exception);
+            throw new IllegalArgumentException(errorMessage, exception);
         }
 
-        if (integerValue.signum() <= 0
+        if (integerValue.signum() < 0
                 || integerValue.compareTo(BigInteger.valueOf(Long.MAX_VALUE)) > 0) {
-            throw new IllegalArgumentException("Invalid user id");
+            throw new IllegalArgumentException(errorMessage);
         }
 
         return integerValue.longValueExact();
