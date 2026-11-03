@@ -30,6 +30,9 @@ public class User {
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "token_version", nullable = false, columnDefinition = "bigint default 0")
+    private long tokenVersion = 0L;
+
     public User() {
     }
 
@@ -74,5 +77,13 @@ public class User {
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public long getTokenVersion() {
+        return tokenVersion;
+    }
+
+    public void revokeTokens() {
+        tokenVersion++;
     }
 }

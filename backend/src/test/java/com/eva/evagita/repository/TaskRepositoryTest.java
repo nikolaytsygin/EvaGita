@@ -27,6 +27,12 @@ class TaskRepositoryTest extends PostgresIntegrationTest {
     @Autowired
     private NotificationRepository notificationRepository;
 
+    @Autowired
+    private ProjectRepository projectRepository;
+
+    @Autowired
+    private TagRepository tagRepository;
+
     private User testUser;
 
     private User anotherUser;
@@ -34,8 +40,15 @@ class TaskRepositoryTest extends PostgresIntegrationTest {
     @BeforeEach
     void setUp() {
         notificationRepository.deleteAll();
+        notificationRepository.flush();
         taskRepository.deleteAll();
+        taskRepository.flush();
+        projectRepository.deleteAll();
+        projectRepository.flush();
+        tagRepository.deleteAll();
+        tagRepository.flush();
         userRepository.deleteAll();
+        userRepository.flush();
 
         testUser = new User(
                 "task-test-user",

@@ -10,6 +10,8 @@ import com.eva.evagita.model.User;
 import com.eva.evagita.repository.TaskRepository;
 import com.eva.evagita.repository.UserRepository;
 import com.eva.evagita.repository.NotificationRepository;
+import com.eva.evagita.repository.ProjectRepository;
+import com.eva.evagita.repository.TagRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +40,12 @@ class TaskServiceIntegrationTest extends PostgresIntegrationTest {
     @Autowired
     private NotificationRepository notificationRepository;
 
+    @Autowired
+    private ProjectRepository projectRepository;
+
+    @Autowired
+    private TagRepository tagRepository;
+
     @MockitoBean
     private TaskEventProducer taskEventProducer;
 
@@ -47,8 +55,15 @@ class TaskServiceIntegrationTest extends PostgresIntegrationTest {
     @BeforeEach
     void setUp() {
         notificationRepository.deleteAll();
+        notificationRepository.flush();
         taskRepository.deleteAll();
+        taskRepository.flush();
+        projectRepository.deleteAll();
+        projectRepository.flush();
+        tagRepository.deleteAll();
+        tagRepository.flush();
         userRepository.deleteAll();
+        userRepository.flush();
 
         testUser = new User(
                 "service-test-user",

@@ -1,5 +1,6 @@
 package com.eva.evagita.security;
 
+import com.eva.evagita.model.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -8,6 +9,8 @@ import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.Date;
 
 @Service
@@ -24,12 +27,24 @@ public class JwtService {
         this.expiration = expiration;
     }
 
-    public String generateToken(String username) {
+    public String generateToken(User user) {
+        if (user == null) {
+            throw new IllegalArgumentException("User must not be null");
+        }
+        if (user.getId() == null || user.getId() <= 0) {
+            throw new IllegalArgumentException("User must have a positive database id");
+        }
+        if (user.getUsername() == null || user.getUsername().isBlank()) {
+            throw new IllegalArgumentException("User must have a non-blank username");
+        }
+
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + expiration);
 
         return Jwts.builder()
-                .subject(username)
+                .subject(user.getUsername())
+                .claim("user_id", user.getId())
+                .claim("token_version", user.getTokenVersion())
                 .issuedAt(now)
                 .expiration(expiryDate)
                 .signWith(secretKey)
@@ -42,11 +57,61 @@ public class JwtService {
 
     public boolean isTokenValid(String token) {
         try {
-            extractAllClaims(token);
-            return true;
+            Claims claims = extractAllClaims(token);
+            return claims.getSubject() != null
+                    && !claims.getSubject().isBlank()
+                    && claims.getIssuedAt() != null
+                    && claims.getExpiration() != null
+                    && claims.getExpiration().after(claims.getIssuedAt());
         } catch (Exception e) {
             return false;
         }
+    }
+
+    public long extractTokenVersion(String token) {
+        Object version = extractAllClaims(token).get("token_version");
+        if (version == null) {
+            throw new IllegalArgumentException("Missing token version");
+        }
+        if (version instanceof Number number) {
+            return parseNonNegativeLong(number, "Invalid token version");
+        }
+        throw new IllegalArgumentException("Invalid token version");
+    }
+
+    public Long extractUserId(String token) {
+        Object userId = extractAllClaims(token).get("user_id");
+        if (userId == null) {
+            throw new IllegalArgumentException("Missing user id");
+        }
+        if (userId instanceof Number number) {
+            return parsePositiveUserId(number);
+        }
+        throw new IllegalArgumentException("Invalid user id");
+    }
+
+    private long parsePositiveUserId(Number number) {
+        long userId = parseNonNegativeLong(number, "Invalid user id");
+        if (userId == 0L) {
+            throw new IllegalArgumentException("Invalid user id");
+        }
+        return userId;
+    }
+
+    private long parseNonNegativeLong(Number number, String errorMessage) {
+        final BigInteger integerValue;
+        try {
+            integerValue = new BigDecimal(number.toString()).toBigIntegerExact();
+        } catch (NumberFormatException | ArithmeticException exception) {
+            throw new IllegalArgumentException(errorMessage, exception);
+        }
+
+        if (integerValue.signum() < 0
+                || integerValue.compareTo(BigInteger.valueOf(Long.MAX_VALUE)) > 0) {
+            throw new IllegalArgumentException(errorMessage);
+        }
+
+        return integerValue.longValueExact();
     }
 
     private Claims extractAllClaims(String token) {

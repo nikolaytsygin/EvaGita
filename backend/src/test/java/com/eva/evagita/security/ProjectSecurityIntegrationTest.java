@@ -64,10 +64,15 @@ class ProjectSecurityIntegrationTest extends PostgresIntegrationTest {
                 .build();
 
         taskRepository.deleteAll();
+        taskRepository.flush();
         projectRepository.deleteAll();
+        projectRepository.flush();
         tagRepository.deleteAll();
+        tagRepository.flush();
         notificationRepository.deleteAll();
+        notificationRepository.flush();
         userRepository.deleteAll();
+        userRepository.flush();
 
         testUser = userRepository.save(new User(
                 "project-security-user",
@@ -81,7 +86,7 @@ class ProjectSecurityIntegrationTest extends PostgresIntegrationTest {
                 "password"
         ));
 
-        testUserToken = jwtService.generateToken(testUser.getUsername());
+        testUserToken = jwtService.generateToken(testUser);
     }
 
     @Test

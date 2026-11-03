@@ -1,5 +1,8 @@
 package com.eva.evagita.security;
 
+import com.eva.evagita.model.User;
+import com.eva.evagita.repository.UserRepository;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -15,9 +18,14 @@ import java.util.Collections;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
+    private final UserRepository userRepository;
 
-    public JwtAuthenticationFilter(JwtService jwtService) {
+    public JwtAuthenticationFilter(
+            JwtService jwtService,
+            UserRepository userRepository
+    ) {
         this.jwtService = jwtService;
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -41,7 +49,31 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        String username = jwtService.extractUsername(token);
+        String username;
+        long tokenVersion;
+        Long userId;
+        try {
+            username = jwtService.extractUsername(token);
+            tokenVersion = jwtService.extractTokenVersion(token);
+            userId = jwtService.extractUserId(token);
+        } catch (JwtException | IllegalArgumentException exception) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        if (userId == null) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        User user = userRepository.findById(userId).orElse(null);
+
+        if (user == null
+                || !user.getUsername().equals(username)
+                || user.getTokenVersion() != tokenVersion) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         UsernamePasswordAuthenticationToken authentication =
                 new UsernamePasswordAuthenticationToken(
