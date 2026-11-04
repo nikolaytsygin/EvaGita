@@ -1,6 +1,7 @@
 package com.eva.evagita.service;
 
 import com.eva.evagita.event.TaskEvent;
+import com.eva.evagita.config.BusinessTimeProperties;
 import com.eva.evagita.messaging.TaskEventProducer;
 import com.eva.evagita.exception.TagNotFoundException;
 import com.eva.evagita.exception.TaskNotFoundException;
@@ -17,6 +18,7 @@ import com.eva.evagita.specification.TaskSpecification;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -27,18 +29,21 @@ public class TaskServiceImpl implements TaskService {
     private final ProjectRepository projectRepository;
     private final TagRepository tagRepository;
     private final TaskEventProducer taskEventProducer;
+    private final BusinessClock businessClock;
 
     @Autowired
     public TaskServiceImpl(
             TaskRepository taskRepository,
             ProjectRepository projectRepository,
             TagRepository tagRepository,
-            TaskEventProducer taskEventProducer
+            TaskEventProducer taskEventProducer,
+            BusinessClock businessClock
     ) {
         this.taskRepository = taskRepository;
         this.projectRepository = projectRepository;
         this.tagRepository = tagRepository;
         this.taskEventProducer = taskEventProducer;
+        this.businessClock = businessClock;
     }
 
     public TaskServiceImpl(TaskRepository taskRepository) {
@@ -46,6 +51,10 @@ public class TaskServiceImpl implements TaskService {
         this.projectRepository = null;
         this.tagRepository = null;
         this.taskEventProducer = null;
+        this.businessClock = new BusinessClock(
+                Clock.systemUTC(),
+                new BusinessTimeProperties()
+        );
     }
 
     @Override
@@ -89,7 +98,7 @@ public class TaskServiceImpl implements TaskService {
     public long countOverdueTasks(User user) {
         return taskRepository.countByUserAndDueDateBeforeAndStatusNot(
                 user,
-                LocalDate.now(),
+                businessClock.currentDate(),
                 TaskStatus.DONE
         );
     }

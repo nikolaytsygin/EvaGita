@@ -1,22 +1,32 @@
 package com.eva.evagita.repository;
 
 import com.eva.evagita.PostgresIntegrationTest;
+import com.eva.evagita.config.BusinessTimeProperties;
 import com.eva.evagita.model.Task;
 import com.eva.evagita.model.TaskPriority;
 import com.eva.evagita.model.TaskStatus;
 import com.eva.evagita.model.User;
+import com.eva.evagita.service.BusinessClock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 class TaskRepositoryTest extends PostgresIntegrationTest {
+
+    private static final BusinessClock BUSINESS_CLOCK = new BusinessClock(
+            Clock.fixed(Instant.parse("2026-11-03T21:15:30Z"), ZoneOffset.UTC),
+            new BusinessTimeProperties()
+    );
 
     @Autowired
     private TaskRepository taskRepository;
@@ -272,25 +282,25 @@ class TaskRepositoryTest extends PostgresIntegrationTest {
         Task overdueTodo = new Task();
         overdueTodo.setTitle("Overdue TODO task");
         overdueTodo.setStatus(TaskStatus.TODO);
-        overdueTodo.setDueDate(LocalDate.now().minusDays(2));
+        overdueTodo.setDueDate(BUSINESS_CLOCK.currentDate().minusDays(2));
         overdueTodo.setUser(testUser);
 
         Task overdueInProgress = new Task();
         overdueInProgress.setTitle("Overdue IN_PROGRESS task");
         overdueInProgress.setStatus(TaskStatus.IN_PROGRESS);
-        overdueInProgress.setDueDate(LocalDate.now().minusDays(1));
+        overdueInProgress.setDueDate(BUSINESS_CLOCK.currentDate().minusDays(1));
         overdueInProgress.setUser(anotherUser);
 
         Task overdueDone = new Task();
         overdueDone.setTitle("Overdue DONE task");
         overdueDone.setStatus(TaskStatus.DONE);
-        overdueDone.setDueDate(LocalDate.now().minusDays(3));
+        overdueDone.setDueDate(BUSINESS_CLOCK.currentDate().minusDays(3));
         overdueDone.setUser(testUser);
 
         Task futureTodo = new Task();
         futureTodo.setTitle("Future TODO task");
         futureTodo.setStatus(TaskStatus.TODO);
-        futureTodo.setDueDate(LocalDate.now().plusDays(2));
+        futureTodo.setDueDate(BUSINESS_CLOCK.currentDate().plusDays(2));
         futureTodo.setUser(testUser);
 
         taskRepository.saveAllAndFlush(List.of(
@@ -302,7 +312,7 @@ class TaskRepositoryTest extends PostgresIntegrationTest {
 
         List<Task> result =
                 taskRepository.findAllByDueDateBeforeAndStatusNot(
-                        LocalDate.now(),
+                        BUSINESS_CLOCK.currentDate(),
                         TaskStatus.DONE
                 );
 

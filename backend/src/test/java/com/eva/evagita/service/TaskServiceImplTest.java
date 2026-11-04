@@ -1,5 +1,6 @@
 package com.eva.evagita.service;
 
+import com.eva.evagita.config.BusinessTimeProperties;
 import com.eva.evagita.event.TaskEvent;
 import com.eva.evagita.messaging.TaskEventProducer;
 import com.eva.evagita.model.NotificationType;
@@ -15,9 +16,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.time.ZoneOffset;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -41,7 +45,14 @@ class TaskServiceImplTest {
                 taskRepository,
                 null,
                 null,
-                taskEventProducer
+                taskEventProducer,
+                new BusinessClock(
+                        Clock.fixed(
+                                Instant.parse("2026-11-04T12:00:00Z"),
+                                ZoneOffset.UTC
+                        ),
+                        new BusinessTimeProperties()
+                )
         );
 
         testUser = new User(

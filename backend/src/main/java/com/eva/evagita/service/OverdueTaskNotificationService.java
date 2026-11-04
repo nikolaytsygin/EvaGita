@@ -9,7 +9,6 @@ import com.eva.evagita.repository.TaskRepository;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -17,20 +16,23 @@ public class OverdueTaskNotificationService {
 
     private final TaskRepository taskRepository;
     private final TaskEventProducer taskEventProducer;
+    private final BusinessClock businessClock;
 
     public OverdueTaskNotificationService(
             TaskRepository taskRepository,
-            TaskEventProducer taskEventProducer
+            TaskEventProducer taskEventProducer,
+            BusinessClock businessClock
     ) {
         this.taskRepository = taskRepository;
         this.taskEventProducer = taskEventProducer;
+        this.businessClock = businessClock;
     }
 
     @Scheduled(cron = "0 0 * * * *")
     public void notifyOverdueTasks() {
         List<Task> overdueTasks =
                 taskRepository.findAllByDueDateBeforeAndStatusNot(
-                        LocalDate.now(),
+                        businessClock.currentDate(),
                         TaskStatus.DONE
                 );
 

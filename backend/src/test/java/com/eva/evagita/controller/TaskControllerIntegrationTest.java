@@ -41,6 +41,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 class TaskControllerIntegrationTest extends PostgresIntegrationTest {
 
+    private static final LocalDate TEST_DATE = LocalDate.of(2026, 11, 4);
+
     @Autowired
     private WebApplicationContext webApplicationContext;
 
@@ -784,7 +786,7 @@ class TaskControllerIntegrationTest extends PostgresIntegrationTest {
     @Test
     void shouldApplyCombinedFiltersWithoutReturningAnotherUsersTasks()
             throws Exception {
-        LocalDate today = LocalDate.now();
+        LocalDate today = TEST_DATE;
 
         Task matchingTask = createTask("Matching task", testUser);
         matchingTask.setStatus(TaskStatus.TODO);
@@ -831,7 +833,7 @@ class TaskControllerIntegrationTest extends PostgresIntegrationTest {
     @Test
     void shouldReturnEmptyListWhenDueDateFromIsAfterDueDateTo()
             throws Exception {
-        LocalDate today = LocalDate.now();
+        LocalDate today = TEST_DATE;
 
         Task task = createTask("Task in date range", testUser);
         task.setDueDate(today);

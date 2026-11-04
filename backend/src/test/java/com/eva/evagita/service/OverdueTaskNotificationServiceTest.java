@@ -1,5 +1,6 @@
 package com.eva.evagita.service;
 
+import com.eva.evagita.config.BusinessTimeProperties;
 import com.eva.evagita.event.TaskEvent;
 import com.eva.evagita.messaging.TaskEventProducer;
 import com.eva.evagita.model.NotificationType;
@@ -13,13 +14,21 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.List;
 
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class OverdueTaskNotificationServiceTest {
+
+    private static final Instant FIXED_INSTANT =
+            Instant.parse("2026-11-03T21:15:30Z");
+    private static final LocalDate BUSINESS_DATE =
+            LocalDate.of(2026, 11, 4);
 
     @Mock
     private TaskRepository taskRepository;
@@ -35,7 +44,11 @@ class OverdueTaskNotificationServiceTest {
     void setUp() {
         service = new OverdueTaskNotificationService(
                 taskRepository,
-                taskEventProducer
+                taskEventProducer,
+                new BusinessClock(
+                        Clock.fixed(FIXED_INSTANT, ZoneOffset.UTC),
+                        new BusinessTimeProperties()
+                )
         );
 
         testUser = mock(User.class);
@@ -48,19 +61,19 @@ class OverdueTaskNotificationServiceTest {
         Task firstTask = new Task();
         firstTask.setId(10L);
         firstTask.setTitle("Overdue task 1");
-        firstTask.setDueDate(LocalDate.now().minusDays(1));
+        firstTask.setDueDate(BUSINESS_DATE.minusDays(1));
         firstTask.setStatus(TaskStatus.TODO);
         firstTask.setUser(testUser);
 
         Task secondTask = new Task();
         secondTask.setId(20L);
         secondTask.setTitle("Overdue task 2");
-        secondTask.setDueDate(LocalDate.now().minusDays(3));
+        secondTask.setDueDate(BUSINESS_DATE.minusDays(3));
         secondTask.setStatus(TaskStatus.IN_PROGRESS);
         secondTask.setUser(testUser);
 
         when(taskRepository.findAllByDueDateBeforeAndStatusNot(
-                LocalDate.now(),
+                BUSINESS_DATE,
                 TaskStatus.DONE
         )).thenReturn(List.of(firstTask, secondTask));
 
@@ -93,18 +106,18 @@ class OverdueTaskNotificationServiceTest {
         firstTask.setId(10L);
         firstTask.setTitle("First user's overdue task");
         firstTask.setStatus(TaskStatus.TODO);
-        firstTask.setDueDate(LocalDate.now().minusDays(1));
+        firstTask.setDueDate(BUSINESS_DATE.minusDays(1));
         firstTask.setUser(testUser);
 
         Task secondTask = new Task();
         secondTask.setId(20L);
         secondTask.setTitle("Second user's overdue task");
         secondTask.setStatus(TaskStatus.IN_PROGRESS);
-        secondTask.setDueDate(LocalDate.now().minusDays(2));
+        secondTask.setDueDate(BUSINESS_DATE.minusDays(2));
         secondTask.setUser(secondUser);
 
         when(taskRepository.findAllByDueDateBeforeAndStatusNot(
-                LocalDate.now(),
+                BUSINESS_DATE,
                 TaskStatus.DONE
         )).thenReturn(List.of(firstTask, secondTask));
 
@@ -133,18 +146,18 @@ class OverdueTaskNotificationServiceTest {
         doneTask.setId(10L);
         doneTask.setTitle("Completed task");
         doneTask.setStatus(TaskStatus.DONE);
-        doneTask.setDueDate(LocalDate.now().minusDays(2));
+        doneTask.setDueDate(BUSINESS_DATE.minusDays(2));
         doneTask.setUser(testUser);
 
         Task overdueTask = new Task();
         overdueTask.setId(20L);
         overdueTask.setTitle("Open overdue task");
         overdueTask.setStatus(TaskStatus.TODO);
-        overdueTask.setDueDate(LocalDate.now().minusDays(1));
+        overdueTask.setDueDate(BUSINESS_DATE.minusDays(1));
         overdueTask.setUser(testUser);
 
         when(taskRepository.findAllByDueDateBeforeAndStatusNot(
-                LocalDate.now(),
+                BUSINESS_DATE,
                 TaskStatus.DONE
         )).thenReturn(List.of(overdueTask));
 
@@ -162,7 +175,7 @@ class OverdueTaskNotificationServiceTest {
     @Test
     void notifyOverdueTasks_shouldNotPublishAnythingWhenNoOverdueTasks() {
         when(taskRepository.findAllByDueDateBeforeAndStatusNot(
-                LocalDate.now(),
+                BUSINESS_DATE,
                 TaskStatus.DONE
         )).thenReturn(List.of());
 
@@ -174,7 +187,7 @@ class OverdueTaskNotificationServiceTest {
     @Test
     void notifyOverdueTasks_shouldNotIncludeDoneTasks() {
         when(taskRepository.findAllByDueDateBeforeAndStatusNot(
-                LocalDate.now(),
+                BUSINESS_DATE,
                 TaskStatus.DONE
         )).thenReturn(List.of());
 
